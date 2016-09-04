@@ -8,7 +8,7 @@ function ggraph(nodes, edges, options) {
         edgeTarget: function(kv) { return kv.value.targetname; }
     }, options || {});
 
-    var _nodeIndex, _edgeIndex, _outsList, _insList;
+    var _nodeIndex, _edgeIndex, _nodesList, _edgesList, _outsList, _insList;
 
     function build_index(vs, acc, wrap) {
         return vs.reduce(function(o, v) {
@@ -26,7 +26,19 @@ function ggraph(nodes, edges, options) {
             return;
         _edgeIndex = build_index(edges, options.edgeKey, edge_wrapper);
     }
-    function build_edge_list(acc) {
+    function build_nodes_list() {
+        if(_nodesList)
+            return;
+        build_node_index();
+        _nodesList = nodes.map(function(v) { return _graph.node(options.nodeKey(v)); });
+    }
+    function build_edges_list() {
+        if(_edgesList)
+            return;
+        build_edge_index();
+        _edgesList = edges.map(function(v) { return _graph.edge(options.edgeKey(v)); });
+    }
+    function build_directional_edge_lists(acc) {
         build_edge_index();
         return edges.reduce(function(o, v) {
             var l = o[acc(v)] = o[acc(v)] || [];
@@ -37,12 +49,12 @@ function ggraph(nodes, edges, options) {
     function build_outs_index() {
         if(_outsList)
             return;
-        _outsList = build_edge_list(options.edgeSource);
+        _outsList = build_directional_edge_lists(options.edgeSource);
     }
     function build_ins_index() {
         if(_insList)
             return;
-        _insList = build_edge_list(options.edgeTarget);
+        _insList = build_directional_edge_lists(options.edgeTarget);
     }
     function node_wrapper(n) {
         return {
@@ -86,6 +98,14 @@ function ggraph(nodes, edges, options) {
         edge: function(key) {
             build_edge_index();
             return _edgeIndex[key];
+        },
+        nodes: function() {
+            build_nodes_list();
+            return _nodesList;
+        },
+        edges: function() {
+            build_edges_list();
+            return _edgesList;
         }
     };
     return _graph;
