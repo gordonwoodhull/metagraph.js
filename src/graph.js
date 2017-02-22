@@ -1,4 +1,4 @@
-function ggraph(nodes, edges, options) {
+metagraph.graph = function(nodes, edges, options) {
     // by default, assume crossfilter-like key/value pairs, sourcename&targetname properties
     // but any arrays of nodes and edges should be adaptable
     options = Object.assign({
