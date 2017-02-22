@@ -1,11 +1,11 @@
 metagraph.graph = function(nodes, edges, options) {
-    // by default, assume crossfilter-like key/value pairs, sourcename&targetname properties
+    // by default, assume crossfilter-like key/value pairs, source & target properties
     // but any arrays of nodes and edges should be adaptable
     options = Object.assign({
         nodeKey: function(kv) { return kv.key; },
         edgeKey: function(kv) { return kv.key; },
-        edgeSource: function(kv) { return kv.value.sourcename; },
-        edgeTarget: function(kv) { return kv.value.targetname; }
+        edgeSource: function(kv) { return kv.value.source; },
+        edgeTarget: function(kv) { return kv.value.target; }
     }, options || {});
 
     var _nodeIndex, _edgeIndex, _nodesList, _edgesList, _outsList, _insList;
