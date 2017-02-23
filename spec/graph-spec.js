@@ -2,8 +2,8 @@ describe('graph', function() {
     var graph;
     var nodes, edges;
 
-    function Name(n) {
-        return n.name();
+    function get_key(n) {
+        return n.key();
     }
     describe('adcdefg', function() {
         beforeEach(function() {
@@ -21,25 +21,33 @@ describe('graph', function() {
             graph = metagraph.graph(nodes, edges);
         });
         it('has nodes a,b,c', function() {
-            expect(graph.nodes().map(Name)).toEqual(['a','b','c','d']);
+            expect(graph.nodes().map(get_key)).toEqual(['a','b','c','d']);
         });
         it('has edges e,f,g', function() {
-            expect(graph.edges().map(Name)).toEqual(['e','f','g']);
+            expect(graph.edges().map(get_key)).toEqual(['e','f','g']);
+        });
+        it('nodes b,c have graph', function() {
+            expect(graph.node('b').graph()).toBe(graph);
+            expect(graph.node('c').graph()).toBe(graph);
+        });
+        it('edges e,f have graph', function() {
+            expect(graph.edge('e').graph()).toBe(graph);
+            expect(graph.edge('f').graph()).toBe(graph);
         });
         it('a has outs e,f', function() {
-            expect(graph.node('a').outs().map(Name)).toEqual(['e','f']);
+            expect(graph.node('a').outs().map(get_key)).toEqual(['e','f']);
         });
         it('c has out g', function() {
-            expect(graph.node('c').outs().map(Name)).toEqual(['g']);
+            expect(graph.node('c').outs().map(get_key)).toEqual(['g']);
         });
         it('b has in e', function() {
-            expect(graph.node('b').ins().map(Name)).toEqual(['e']);
+            expect(graph.node('b').ins().map(get_key)).toEqual(['e']);
         });
         it('f has source a', function() {
-            expect(graph.edge('f').source().name()).toEqual('a');
+            expect(graph.edge('f').source().key()).toEqual('a');
         });
         it('g has target d', function() {
-            expect(graph.edge('g').target().name()).toEqual('d');
+            expect(graph.edge('g').target().key()).toEqual('d');
         });
     });
 });

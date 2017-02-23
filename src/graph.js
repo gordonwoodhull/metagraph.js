@@ -1,6 +1,8 @@
 metagraph.graph = function(nodes, edges, options) {
-    // by default, assume crossfilter-like key/value pairs, source & target properties
-    // but any arrays of nodes and edges should be adaptable
+    if(!Array.isArray(nodes))
+        nodes = object_to_keyvalue(nodes);
+    if(!Array.isArray(edges))
+        edges = object_to_keyvalue(edges);
     options = Object.assign({
         nodeKey: function(kv) { return kv.key; },
         edgeKey: function(kv) { return kv.key; },
@@ -10,12 +12,6 @@ metagraph.graph = function(nodes, edges, options) {
 
     var _nodeIndex, _edgeIndex, _nodesList, _edgesList, _outsList, _insList;
 
-    function build_index(vs, acc, wrap) {
-        return vs.reduce(function(o, v) {
-            o[acc(v)] = wrap(v);
-            return o;
-        }, {});
-    }
     function build_node_index() {
         if(_nodeIndex)
             return;
@@ -61,8 +57,11 @@ metagraph.graph = function(nodes, edges, options) {
             value: function() {
                 return n;
             },
-            name: function() {
+            key: function() {
                 return options.nodeKey(n);
+            },
+            graph: function() {
+                return _graph;
             },
             outs: function() {
                 build_outs_index();
@@ -79,8 +78,11 @@ metagraph.graph = function(nodes, edges, options) {
             value: function() {
                 return e;
             },
-            name: function() {
+            key: function() {
                 return options.edgeKey(e);
+            },
+            graph: function() {
+                return _graph;
             },
             source: function() {
                 return _graph.node(options.edgeSource(e));
