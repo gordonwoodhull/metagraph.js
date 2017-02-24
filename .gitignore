@@ -1,0 +1,12 @@
+# tmp files
+*~
+# local files
+node_modules
+# files for gh-pages and grunt-contrib-jasmine
+.grunt
+# jasmine spec runners
+spec/*.html
+# html docs are only checked into gh-pages branch
+web/docs/html
+# in fact, we don't have any web besides docs
+web/
