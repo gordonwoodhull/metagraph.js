@@ -247,5 +247,7 @@ module.exports.jsFiles = [
     'src/banner.js',   // NOTE: keep this first
     'src/core.js',
     'src/graph.js',
+    'src/pattern.js',
+    'src/graph_pattern.js',
     'src/footer.js'  // NOTE: keep this last
 ];

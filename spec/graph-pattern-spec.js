@@ -1,24 +1,25 @@
-describe('graph', function() {
+describe('graph_pattern', function() {
     var graph;
-    var nodes, edges;
 
     function get_key(n) {
         return n.key();
     }
     describe('adcdefg', function() {
         beforeEach(function() {
-            nodes = [
-                {key: 'a'},
-                {key: 'b'},
-                {key: 'c'},
-                {key: 'd'}
-            ];
-            edges = [
-                {key: 'e', value: {source: 'a', target: 'b'}},
-                {key: 'f', value: {source: 'a', target: 'c'}},
-                {key: 'g', value: {source: 'c', target: 'd'}}
-            ];
-            graph = metagraph.graph(nodes, edges);
+            graph = metagraph.graph_pattern()({
+                Graph: {},
+                Node: [
+                    {key: 'a'},
+                    {key: 'b'},
+                    {key: 'c'},
+                    {key: 'd'}
+                ],
+                Edge: [
+                    {key: 'e', value: {source: 'a', target: 'b'}},
+                    {key: 'f', value: {source: 'a', target: 'c'}},
+                    {key: 'g', value: {source: 'c', target: 'd'}}
+                ]
+            }).root('Graph');
         });
         it('has nodes a,b,c,d', function() {
             expect(graph.nodes().map(get_key)).toEqual(['a','b','c','d']);
@@ -51,4 +52,3 @@ describe('graph', function() {
         });
     });
 });
-
