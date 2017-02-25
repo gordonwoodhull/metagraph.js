@@ -1,3 +1,18 @@
+/**
+ * The reason there are so many higher-order functions is that there are five
+ * stages of a pattern's life:
+ * - specification - the user specifies a pattern by calling one_to_many and
+ *   friends
+ * - definition (compilation) - the pattern walks the resulting graph and
+ *   defines the functions that will respond to data
+ * - instantiation - data is provided to the pattern to create objects
+ * - binding - if the action needs other indices built, they are built on demand
+ *   and provided to the action before it's run (*)
+ * - action - responding to user code
+ * (*) for buildIndex, the binding and action happen in one step. members first
+ * bind to the indices and return the function and responds to the user, in
+ * order not to pollute the signature.
+ **/
 metagraph.pattern = function(types, relations) {
     var graph = mg.graph(types, relations);
     var defn = {node: {}, edge: {}, indices: {}};
