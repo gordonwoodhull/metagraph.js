@@ -29,13 +29,15 @@ metagraph.graph_pattern = function(options) {
         }),
         edge_source: mg.many_to_one({
             source: 'Edge', target: 'Node',
-            source_member: 'source', target_member: 'outs',
-            access: options.edgeSource, source_index: 'graph_edge', target_index: 'graph_node'
+            source_member: 'source', source_deps: 'graph_node',
+            target_member: 'outs', target_deps: 'graph_edge',
+            access: options.edgeSource
         }),
         edge_target: mg.many_to_one({
             source: 'Edge', target: 'Node',
-            source_member: 'target', target_member: 'ins',
-            access: options.edgeTarget, source_index: 'graph_edge', target_index: 'graph_node'
+            source_member: 'target', source_deps: 'graph_node',
+            target_member: 'ins', target_deps: 'graph_edge',
+            access: options.edgeTarget
         })
     });
 };

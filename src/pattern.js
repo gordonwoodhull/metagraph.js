@@ -6,8 +6,56 @@ metagraph.pattern = function(types, relations) {
             members: {}
         };
     });
+    function resolve(deps, funfun) {
+        return function(defn, impl, val) {
+            var action = funfun(defn, impl, val);
+            return function() {
+                return action.apply(null, deps.map(function(dep) {
+                    return defn.indices[dep](defn, impl);
+                })).apply(null, arguments);
+            };
+        };
+    }
+
     graph.edges().forEach(function(edge) {
-        edge.value().value.add_members(defn, edge);
+        var evalue = edge.value().value;
+        if(evalue.buildIndex) {
+            var buind = evalue.buildIndex(edge);
+            defn.indices[edge.key()] = function(defn, impl) {
+                if(!impl.indices[edge.key()]) {
+                    var args = [defn, impl], index;
+                    if(buind.deps) {
+                        var deps = Array.isArray(buind.deps) ? buind.deps : [buind.deps];
+                        args = args.concat(deps.map(function(dep) {
+                            return defn.indices[dep](defn, impl);
+                        }));
+                        index = buind.funfun.apply(buind, args);
+                    }
+                    else index = buind.funfun(defn, impl);
+                    impl.indices[edge.key()] = index;
+                }
+                return impl.indices[edge.key()];
+            };
+        }
+        var deps, funfun;
+        if(evalue.sourceMember) {
+            var sourmem = evalue.sourceMember(edge);
+            funfun = sourmem.funfun;
+            if(sourmem.deps) {
+                deps = Array.isArray(sourmem.deps) ? sourmem.deps : [sourmem.deps];
+                funfun = resolve(deps, funfun);
+            }
+            defn.node[edge.source().key()].members[sourmem.name] = funfun;
+        }
+        if(evalue.targetMember) {
+            var targmem = evalue.targetMember(edge);
+            funfun = targmem.funfun;
+            if(targmem.deps) {
+                deps = Array.isArray(targmem.deps) ? targmem.deps : [targmem.deps];
+                funfun = resolve(deps, funfun);
+            }
+            defn.node[edge.target().key()].members[targmem.name] = funfun;
+        }
     });
     return function(data) {
         var impl = {
@@ -47,93 +95,119 @@ metagraph.basic_type = function() {
     };
 };
 metagraph.single_type = function() {
-    var spec = mg.basic_type();
-    spec.single = true;
-    return spec;
+    return Object.assign(mg.basic_type(), {
+        single: true
+    });
 };
 metagraph.table_type = function(keyf) {
-    var spec = mg.basic_type();
-    spec.keyFunction = keyf;
-    return spec;
+    return Object.assign(mg.basic_type(), {
+        keyFunction: keyf
+    });
 };
 
 metagraph.one_to_many = function(spec) {
-    spec.add_members = function(defn, edge) {
-        var indexKey = edge.key() + '-index';
-        defn.indices[indexKey] = function(defn, impl) {
-            if(!impl.indices[indexKey])
-                impl.indices[indexKey] = build_index(impl.data[edge.target().key()],
-                                                     edge.target().value().value.keyFunction,
-                                                     defn.node[edge.target().key()].wrap);
-            return impl.indices[indexKey];
-        };
-        if(edge.value().value.source_member)
-            defn.node[edge.source().key()].members[edge.value().value.source_member] = function(defn, impl, val) {
-                return function(key) {
-                    return defn.indices[indexKey](defn, impl)[key];
-                };
+    return Object.assign(spec, {
+        buildIndex: function(edge) {
+            return {
+                funfun: function(defn, impl) {
+                    return build_index(impl.data[edge.target().key()],
+                                       edge.target().value().value.keyFunction,
+                                       defn.node[edge.target().key()].wrap);
+                }
             };
-        if(edge.value().value.target_member)
-            defn.node[edge.target().key()].members[edge.value().value.target_member] = function(defn, impl, val) {
-                return function() {
-                    return impl.objects[edge.source().key()];
-                };
+        },
+        sourceMember: function(edge) {
+            return {
+                name: edge.value().value.source_member,
+                deps: edge.key(),
+                funfun: function(defn, impl, val) {
+                    return function(index) {
+                        return function(key) {
+                            return index[key];
+                        };
+                    };
+                }
             };
-    };
-    return spec;
+        },
+        targetMember: function(edge) {
+            return {
+                name: edge.value().value.target_member,
+                funfun: function(defn, impl, val) {
+                    return function() {
+                        return impl.objects[edge.source().key()];
+                    };
+                }
+            };
+        }
+    });
 };
 metagraph.get_table = function(spec) {
-    spec.add_members = function(defn, edge) {
-        var indexKey = edge.value().value.index + '-index';
-        var listKey = edge.key() + '-list';
-        defn.indices[listKey] = function(defn, impl) {
-            if(!impl.indices[listKey]) {
-                var index = defn.indices[indexKey](defn, impl);
-                impl.indices[listKey] = impl.data[edge.target().key()].map(function(val) {
-                    return index[edge.target().value().value.keyFunction(val)];
-                });
-            }
-            return impl.indices[listKey];
-        };
-        if(edge.value().value.source_member)
-            defn.node[edge.source().key()].members[edge.value().value.source_member] = function(defn, impl, val) {
-                return function() {
-                    return defn.indices[listKey](defn, impl);
-                };
+    return Object.assign(spec, {
+        buildIndex: function(edge) {
+            return {
+                deps: edge.value().value.index,
+                funfun: function(defn, impl, index) {
+                    return impl.data[edge.target().key()].map(function(val) {
+                        return index[edge.target().value().value.keyFunction(val)];
+                    });
+                }
             };
-    };
-    return spec;
+        },
+        sourceMember: function(edge) {
+            return {
+                name: edge.value().value.source_member,
+                deps: edge.key(),
+                funfun: function(defn, impl, val) {
+                    return function(list) {
+                        return function() {
+                            return list;
+                        };
+                    };
+                }
+            };
+        }
+    });
 };
 metagraph.many_to_one = function(spec) {
-    spec.add_members = function(defn, edge) {
-        var sourceIndexKey = edge.value().value.source_index + '-index';
-        var targetIndexKey = edge.value().value.target_index + '-index';
-        var twowayKey = edge.key() + '-twoway';
-        defn.indices[twowayKey] = function(defn, impl) {
-            if(!impl.indices[twowayKey]) {
-                var index = defn.indices[sourceIndexKey](defn, impl);
-                impl.indices[twowayKey] = impl.data[edge.source().key()].reduce(function(o, v) {
-                    var key = edge.value().value.access(v);
-                    var list = o[key] = o[key] || [];
-                    list.push(index[edge.source().value().value.keyFunction(v)]);
-                    return o;
-                }, {});
-            }
-            return impl.indices[twowayKey];
-        };
-        if(edge.value().value.source_member)
-            defn.node[edge.source().key()].members[edge.value().value.source_member] = function(defn, impl, val) {
-                return function() {
-                    var index = defn.indices[targetIndexKey](defn, impl);
-                    return index[edge.value().value.access(val)];
-                };
+    return Object.assign(spec, {
+        buildIndex: function(edge) {
+            return {
+                deps: edge.value().value.target_deps,
+                funfun: function(defn, impl, index) {
+                        return impl.data[edge.source().key()].reduce(function(o, v) {
+                            var key = edge.value().value.access(v);
+                            var list = o[key] = o[key] || [];
+                            list.push(index[edge.source().value().value.keyFunction(v)]);
+                            return o;
+                        }, {});
+                }
             };
-        if(edge.value().value.target_member)
-            defn.node[edge.target().key()].members[edge.value().value.target_member] = function(defn, impl, val) {
-                return function() {
-                    return defn.indices[twowayKey](defn, impl)[edge.target().value().value.keyFunction(val)];
-                };
+        },
+        sourceMember: function(edge) {
+            return {
+                name: edge.value().value.source_member,
+                deps: edge.value().value.source_deps,
+                funfun: function(defn, impl, val) {
+                    return function(index) {
+                        return function() {
+                            return index[edge.value().value.access(val)];
+                        };
+                    };
+                }
             };
-    };
-    return spec;
-};
+        },
+        targetMember: function(edge) {
+            return {
+                name: edge.value().value.target_member,
+                deps: edge.key(),
+                funfun: function(defn, impl, val) {
+                    return function(index) {
+                        return function() {
+                            return index[edge.target().value().value.keyFunction(val)];
+                        };
+                    };
+                }
+            };
+        }
+    });
+}
