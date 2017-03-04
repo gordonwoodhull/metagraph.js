@@ -6,7 +6,7 @@ metagraph.graph_pattern = function(options) {
         edgeTarget: function(kv) { return kv.value.target; }
     }, options || {});
 
-    metagraph.graph_pattern.pattern = {
+    return {
         nodes: {
             Graph: mg.single_type(),
             Node: mg.table_type(options.nodeKey),
@@ -42,5 +42,4 @@ metagraph.graph_pattern = function(options) {
                 access: options.edgeTarget
             })
         }};
-    return metagraph.pattern(metagraph.graph_pattern.pattern);
 };
