@@ -22,11 +22,11 @@ metagraph.pattern = function(spec) {
         };
     });
     function resolve(deps, funfun) {
-        return function(defn, impl, val) {
-            var action = funfun(defn, impl, val);
+        return function(name, defn, impl, val) {
+            var action = funfun(name, defn, impl, val);
             return function() {
                 return action.apply(null, deps.map(function(dep) {
-                    return defn.indices[dep](defn, impl);
+                    return defn.indices[dep](name, defn, impl);
                 })).apply(null, arguments);
             };
         };
@@ -36,20 +36,21 @@ metagraph.pattern = function(spec) {
         var evalue = edge.value().value;
         if(evalue.buildIndex) {
             var buind = evalue.buildIndex(edge);
-            defn.indices[edge.key()] = function(defn, impl) {
-                if(!impl.indices[edge.key()]) {
-                    var args = [defn, impl], index;
+            defn.indices[edge.key()] = function(name, defn, impl) {
+                impl.indices[name] = impl.indices[name] || {};
+                if(!impl.indices[name][edge.key()]) {
+                    var args = [name, defn, impl], index;
                     if(buind.deps) {
                         var deps = Array.isArray(buind.deps) ? buind.deps : [buind.deps];
                         args = args.concat(deps.map(function(dep) {
-                            return defn.indices[dep](defn, impl);
+                            return defn.indices[dep](name, defn, impl);
                         }));
                         index = buind.funfun.apply(buind, args);
                     }
-                    else index = buind.funfun(defn, impl);
-                    impl.indices[edge.key()] = index;
+                    else index = buind.funfun(name, defn, impl);
+                    impl.indices[name][edge.key()] = index;
                 }
-                return impl.indices[edge.key()];
+                return impl.indices[name][edge.key()];
             };
         }
         var deps, funfun;
@@ -72,17 +73,18 @@ metagraph.pattern = function(spec) {
             defn.node[edge.target().key()].members[targmem.name] = funfun;
         }
     });
-    return function(data) {
+    return function(name, data) {
         var impl = {
             indices: {},
             objects: {},
-            data: data
+            data: {}
         };
+        impl.data[name] = data;
         graph.nodes().forEach(function(node) {
             defn.node[node.key()].wrap = function(val) {
                 var wrapper = {};
                 Object.keys(defn.node[node.key()].members).forEach(function(member) {
-                    wrapper[member] = defn.node[node.key()].members[member](defn, impl, val);
+                    wrapper[member] = defn.node[node.key()].members[member](name, defn, impl, val);
                 });
                 wrapper.value = function() {
                     return val;
@@ -93,12 +95,14 @@ metagraph.pattern = function(spec) {
                     };
                 return wrapper;
             };
-            if(node.value().value.single)
-                impl.objects[node.key()] = defn.node[node.key()].wrap(data[node.key()]);
+            if(node.value().value.single) {
+                impl.objects[name] = impl.objects[name] || {};
+                impl.objects[name][node.key()] = defn.node[node.key()].wrap(data[node.key()]);
+            }
         });
         return {
             root: function(key) {
-                return impl.objects[key];
+                return impl.objects[name][key];
             }
         };
     };
@@ -124,8 +128,8 @@ metagraph.one_to_many = function(spec) {
     return Object.assign(spec, {
         buildIndex: function(edge) {
             return {
-                funfun: function(defn, impl) {
-                    return build_index(impl.data[edge.target().key()],
+                funfun: function(name, defn, impl) {
+                    return build_index(impl.data[name][edge.target().key()],
                                        edge.target().value().value.keyFunction,
                                        defn.node[edge.target().key()].wrap);
                 }
@@ -135,7 +139,7 @@ metagraph.one_to_many = function(spec) {
             return {
                 name: edge.value().value.source_member,
                 deps: edge.key(),
-                funfun: function(defn, impl, val) {
+                funfun: function(name, defn, impl, val) {
                     return function(index) {
                         return function(key) {
                             return index[key];
@@ -147,9 +151,9 @@ metagraph.one_to_many = function(spec) {
         targetMember: function(edge) {
             return {
                 name: edge.value().value.target_member,
-                funfun: function(defn, impl, val) {
+                funfun: function(name, defn, impl, val) {
                     return function() {
-                        return impl.objects[edge.source().key()];
+                        return impl.objects[name][edge.source().key()];
                     };
                 }
             };
@@ -161,8 +165,8 @@ metagraph.get_table = function(spec) {
         buildIndex: function(edge) {
             return {
                 deps: edge.value().value.index,
-                funfun: function(defn, impl, index) {
-                    return impl.data[edge.target().key()].map(function(val) {
+                funfun: function(name, defn, impl, index) {
+                    return impl.data[name][edge.target().key()].map(function(val) {
                         return index[edge.target().value().value.keyFunction(val)];
                     });
                 }
@@ -172,7 +176,7 @@ metagraph.get_table = function(spec) {
             return {
                 name: edge.value().value.source_member,
                 deps: edge.key(),
-                funfun: function(defn, impl, val) {
+                funfun: function(name, defn, impl, val) {
                     return function(list) {
                         return function() {
                             return list;
@@ -188,8 +192,8 @@ metagraph.many_to_one = function(spec) {
         buildIndex: function(edge) {
             return {
                 deps: edge.value().value.target_deps,
-                funfun: function(defn, impl, index) {
-                        return impl.data[edge.source().key()].reduce(function(o, v) {
+                funfun: function(name, defn, impl, index) {
+                        return impl.data[name][edge.source().key()].reduce(function(o, v) {
                             var key = edge.value().value.access(v);
                             var list = o[key] = o[key] || [];
                             list.push(index[edge.source().value().value.keyFunction(v)]);
@@ -202,7 +206,7 @@ metagraph.many_to_one = function(spec) {
             return {
                 name: edge.value().value.source_member,
                 deps: edge.value().value.source_deps,
-                funfun: function(defn, impl, val) {
+                funfun: function(name, defn, impl, val) {
                     return function(index) {
                         return function() {
                             return index[edge.value().value.access(val)];
@@ -215,7 +219,7 @@ metagraph.many_to_one = function(spec) {
             return {
                 name: edge.value().value.target_member,
                 deps: edge.key(),
-                funfun: function(defn, impl, val) {
+                funfun: function(name, defn, impl, val) {
                     return function(index) {
                         return function() {
                             return index[edge.target().value().value.keyFunction(val)];
@@ -225,4 +229,28 @@ metagraph.many_to_one = function(spec) {
             };
         }
     });
-}
+};
+metagraph.one_to_one = function(spec) {
+    function define_member() {
+        return function(edge) {
+            return {
+                deps: edge.key(),
+                funfun: function(name, defn, impl, others) {
+                    return function(face) {
+                        return others[face];
+                    };
+                }
+            };
+        };
+    }
+    return Object.assign(spec, {
+        buildIndex: function(edge) {
+            return {
+                funfun: function(name, defn, impl) {
+                }
+            };
+        },
+        sourceMember: define_member(),
+        targetMember: define_member()
+    });
+};

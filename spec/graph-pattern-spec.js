@@ -6,7 +6,7 @@ describe('graph_pattern', function() {
     }
     describe('adcdefg', function() {
         beforeEach(function() {
-            graph = metagraph.pattern(metagraph.graph_pattern())({
+            graph = metagraph.pattern(metagraph.graph_pattern())('foo', {
                 Graph: {},
                 Node: [
                     {key: 'a'},
