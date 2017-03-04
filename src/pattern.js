@@ -13,8 +13,8 @@
  * bind to the indices and return the function and responds to the user, in
  * order not to pollute the signature.
  **/
-metagraph.pattern = function(types, relations) {
-    var graph = mg.graph(types, relations);
+metagraph.pattern = function(spec) {
+    var graph = mg.graph(spec.nodes, spec.edges);
     var defn = {node: {}, edge: {}, indices: {}};
     graph.nodes().forEach(function(node) {
         defn.node[node.key()] = {
