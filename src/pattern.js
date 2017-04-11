@@ -72,6 +72,25 @@ metagraph.pattern = function(spec) {
             defn.node[edge.target().key()].members[targmem.name] = funfun;
         }
     });
+    graph.nodes().forEach(function(node) {
+        defn.node[node.key()].wrap = function(impl, val) {
+            var wrapper = {};
+            Object.keys(defn.node[node.key()].members).forEach(function(member) {
+                wrapper[member] = defn.node[node.key()].members[member](defn, impl, val);
+            });
+            // these two seem somewhat specific; should *_type also contribute to interface?
+            if(node.value().keyFunction)
+                wrapper.key = function() {
+                    return node.value().keyFunction(val);
+                };
+            if(node.value().valueFunction)
+                wrapper.value = function() {
+                    return node.value().valueFunction(val);
+                };
+            return wrapper;
+        };
+    });
+
     return function(data) {
         var impl = {
             indices: {},
@@ -79,24 +98,8 @@ metagraph.pattern = function(spec) {
             data: data
         };
         graph.nodes().forEach(function(node) {
-            defn.node[node.key()].wrap = function(val) {
-                var wrapper = {};
-                Object.keys(defn.node[node.key()].members).forEach(function(member) {
-                    wrapper[member] = defn.node[node.key()].members[member](defn, impl, val);
-                });
-                // these two seem somewhat specific; should *_type also contribute to interface?
-                if(node.value().keyFunction)
-                    wrapper.key = function() {
-                        return node.value().keyFunction(val);
-                    };
-                if(node.value().valueFunction)
-                    wrapper.value = function() {
-                        return node.value().valueFunction(val);
-                    };
-                return wrapper;
-            };
             if(node.value().single)
-                impl.objects[node.key()] = defn.node[node.key()].wrap(data[node.key()]);
+                impl.objects[node.key()] = defn.node[node.key()].wrap(impl, data[node.key()]);
         });
         return {
             root: function(key) {
@@ -130,7 +133,7 @@ metagraph.one_to_many = function(spec) {
                 funfun: function(defn, impl) {
                     return build_index(impl.data[edge.target().key()],
                                        edge.target().value().keyFunction,
-                                       defn.node[edge.target().key()].wrap);
+                                       defn.node[edge.target().key()].wrap.bind(null, impl));
                 }
             };
         },

@@ -1,6 +1,6 @@
 {
   "name": "metagraph",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "license": "MIT",
   "copyright": "2017",
   "description": "A framework for building higher-order graph data structures",
