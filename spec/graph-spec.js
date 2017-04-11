@@ -40,6 +40,12 @@ describe('graph', function() {
         it('c has out g', function() {
             expect(graph.node('c').outs().map(get_key)).toEqual(['g']);
         });
+        it('a has no ins', function() {
+            expect(graph.node('a').ins()).toEqual([]);
+        });
+        it('d has no outs', function() {
+            expect(graph.node('d').outs()).toEqual([]);
+        });
         it('b has in e', function() {
             expect(graph.node('b').ins().map(get_key)).toEqual(['e']);
         });

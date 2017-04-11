@@ -67,11 +67,11 @@ metagraph.graph = function(nodes, edges, options) {
             },
             outs: function() {
                 build_outs_index();
-                return _outsList[options.nodeKey(n)];
+                return _outsList[options.nodeKey(n)] || [];
             },
             ins: function() {
                 build_ins_index();
-                return _insList[options.nodeKey(n)];
+                return _insList[options.nodeKey(n)] || [];
             }
         };
     }
