@@ -51,9 +51,6 @@ module.exports = function (grunt) {
                         '<%= conf.web %>/js/jasmine-jsreporter.js',
                         '<%= conf.spec %>/helpers/*.js'
                     ],
-                    styles: [
-                        '<%= conf.web %>/css/dc.css'
-                    ],
                     version: '2.0.0',
                     outfile: '<%= conf.spec %>/index.html',
                     keepRunner: true
@@ -132,55 +129,20 @@ module.exports = function (grunt) {
             }
         },
         copy: {
-            'dc-to-gh': {
+             main: {
                 files: [
                     {
                         expand: true,
                         flatten: true,
-                        src: [
-                            '<%= conf.pkg.name %>.css',
-                            'node_modules/dc/dc.css',
-                            'node_modules/font-awesome/css/font-awesome.css',
-                            'node_modules/jquery-ui-dist/jquery-ui.css'
-                        ],
-                        dest: '<%= conf.web %>/css/'
-                    },
-                    {
-                        expand: true,
-                        flatten: true,
+                        nonull: true,
                         src: [
                             '<%= conf.pkg.name %>.js',
                             '<%= conf.pkg.name %>.js.map',
                             '<%= conf.pkg.name %>.min.js',
                             '<%= conf.pkg.name %>.min.js.map',
-                            'node_modules/crossfilter/crossfilter.js',
-                            'node_modules/d3/d3.js',
-                            'node_modules/lodash/lodash.js',
-                            'node_modules/queue-async/build/queue.js',
-                            'node_modules/dagre/dist/dagre.js',
-                            'node_modules/webcola/WebCola/cola.js'
+                            'node_modules/grunt-saucelabs/examples/jasmine/lib/jasmine-jsreporter/jasmine-jsreporter.js'
                           ],
                         dest: '<%= conf.web %>/js/'
-                    },
-                    {
-                        expand: true,
-                        flatten: true,
-                        src: [
-                            'node_modules/font-awesome/fonts/*'
-                        ],
-                        dest: '<%= conf.web %>/fonts/'
-                    },
-                    {
-                        expand: true,
-                        flatten: true,
-                        src: 'node_modules/d3-tip/index.js',
-                        dest: '<%= conf.web %>/js/d3-tip/'
-                    },
-                    {
-                        expand: true,
-                        flatten: true,
-                        src: 'node_modules/d3-tip/examples/example-styles.css',
-                        dest: '<%= conf.web %>/css/d3-tip/'
                     }
                 ]
             }
