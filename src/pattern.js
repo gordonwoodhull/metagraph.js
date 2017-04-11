@@ -221,7 +221,7 @@ metagraph.many_to_one = function(spec) {
                 funfun: function(defn, impl, val) {
                     return function(index) {
                         return function() {
-                            return index[edge.target().value().keyFunction(val)];
+                            return index[edge.target().value().keyFunction(val)] || [];
                         };
                     };
                 }
