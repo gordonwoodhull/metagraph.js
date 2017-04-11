@@ -67,7 +67,7 @@ describe('graph_pattern', function() {
         var pattern, graph1, graph2;
         beforeEach(function() {
             pattern = metagraph.pattern(metagraph.graph_pattern());
-            graph1 = pattern({
+            var pi1 = pattern({
                 Graph: {},
                 Node: [
                     {key: 'a'},
@@ -78,8 +78,8 @@ describe('graph_pattern', function() {
                     {key: 'e', value: {source: 'a', target: 'b'}},
                     {key: 'f', value: {source: 'b', target: 'c', n: 42}}
                 ]
-            }).root('Graph');
-            graph2 = pattern({
+            });
+            var pi2 = pattern({
                 Graph: {},
                 Node: [
                     {key: 'A'},
@@ -90,7 +90,9 @@ describe('graph_pattern', function() {
                     {key: 'E', value: {source: 'A', target: 'B'}},
                     {key: 'F', value: {source: 'B', target: 'C', n: -42}}
                 ]
-            }).root('Graph');
+            });
+            graph1 = pi1.root('Graph');
+            graph2 = pi2.root('Graph');
         });
         it('have their own nodes', function() {
             expect(graph1.nodes().map(get_key)).toEqual(['a','b','c']);

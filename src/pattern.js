@@ -97,12 +97,15 @@ metagraph.pattern = function(spec) {
             objects: {},
             data: data
         };
-        graph.nodes().forEach(function(node) {
-            if(node.value().single)
-                impl.objects[node.key()] = defn.node[node.key()].wrap(impl, data[node.key()]);
-        });
         return {
             root: function(key) {
+                var node = graph.node(key);
+                if(!node)
+                    throw new Error("'" + key + "' is not a type in this pattern");
+                if(!graph.node(key).value().single)
+                    throw new Error("the type '" + key + "' is not a root");
+                if(!impl.objects[key])
+                    impl.objects[key] = defn.node[node.key()].wrap(impl, data[node.key()]);
                 return impl.objects[key];
             }
         };
