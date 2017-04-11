@@ -11,12 +11,12 @@ describe('graph_pattern', function() {
                 Node: [
                     {key: 'a'},
                     {key: 'b'},
-                    {key: 'c'},
+                    {key: 'c', value: {n: 17}},
                     {key: 'd'}
                 ],
                 Edge: [
                     {key: 'e', value: {source: 'a', target: 'b'}},
-                    {key: 'f', value: {source: 'a', target: 'c'}},
+                    {key: 'f', value: {source: 'a', target: 'c', n: 42}},
                     {key: 'g', value: {source: 'c', target: 'd'}}
                 ]
             }).root('Graph');
@@ -49,6 +49,12 @@ describe('graph_pattern', function() {
         });
         it('g has target d', function() {
             expect(graph.edge('g').target().key()).toEqual('d');
+        });
+        it('node c has data', function() {
+            expect(graph.node('c').value().n).toEqual(17);
+        });
+        it('edge f has data', function() {
+            expect(graph.edge('f').value().n).toEqual(42);
         });
     });
 });

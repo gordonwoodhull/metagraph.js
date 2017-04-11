@@ -2,6 +2,8 @@ metagraph.graph_pattern = function(options) {
     options = Object.assign({
         nodeKey: function(kv) { return kv.key; },
         edgeKey: function(kv) { return kv.key; },
+        nodeValue: function(kv) { return kv.value; },
+        edgeValue: function(kv) { return kv.value; },
         edgeSource: function(kv) { return kv.value.source; },
         edgeTarget: function(kv) { return kv.value.target; }
     }, options || {});
@@ -9,8 +11,8 @@ metagraph.graph_pattern = function(options) {
     return {
         nodes: {
             Graph: mg.single_type(),
-            Node: mg.table_type(options.nodeKey),
-            Edge: mg.table_type(options.edgeKey)
+            Node: mg.table_type(options.nodeKey, options.nodeValue),
+            Edge: mg.table_type(options.edgeKey, options.edgeValue)
         },
         edges: {
             graph_node: mg.one_to_many({

@@ -33,7 +33,7 @@ metagraph.pattern = function(spec) {
     }
 
     graph.edges().forEach(function(edge) {
-        var evalue = edge.value().value;
+        var evalue = edge.value();
         if(evalue.buildIndex) {
             var buind = evalue.buildIndex(edge);
             defn.indices[edge.key()] = function(defn, impl) {
@@ -84,16 +84,18 @@ metagraph.pattern = function(spec) {
                 Object.keys(defn.node[node.key()].members).forEach(function(member) {
                     wrapper[member] = defn.node[node.key()].members[member](defn, impl, val);
                 });
-                wrapper.value = function() {
-                    return val;
-                };
-                if(node.value().value.keyFunction)
+                // these two seem somewhat specific; should *_type also contribute to interface?
+                if(node.value().keyFunction)
                     wrapper.key = function() {
-                        return node.value().value.keyFunction(val);
+                        return node.value().keyFunction(val);
+                    };
+                if(node.value().valueFunction)
+                    wrapper.value = function() {
+                        return node.value().valueFunction(val);
                     };
                 return wrapper;
             };
-            if(node.value().value.single)
+            if(node.value().single)
                 impl.objects[node.key()] = defn.node[node.key()].wrap(data[node.key()]);
         });
         return {
@@ -114,9 +116,10 @@ metagraph.single_type = function() {
         single: true
     });
 };
-metagraph.table_type = function(keyf) {
+metagraph.table_type = function(keyf, valuef) {
     return Object.assign(mg.basic_type(), {
-        keyFunction: keyf
+        keyFunction: keyf,
+        valueFunction: valuef
     });
 };
 
@@ -126,14 +129,14 @@ metagraph.one_to_many = function(spec) {
             return {
                 funfun: function(defn, impl) {
                     return build_index(impl.data[edge.target().key()],
-                                       edge.target().value().value.keyFunction,
+                                       edge.target().value().keyFunction,
                                        defn.node[edge.target().key()].wrap);
                 }
             };
         },
         sourceMember: function(edge) {
             return {
-                name: edge.value().value.source_member,
+                name: edge.value().source_member,
                 deps: edge.key(),
                 funfun: function(defn, impl, val) {
                     return function(index) {
@@ -146,7 +149,7 @@ metagraph.one_to_many = function(spec) {
         },
         targetMember: function(edge) {
             return {
-                name: edge.value().value.target_member,
+                name: edge.value().target_member,
                 funfun: function(defn, impl, val) {
                     return function() {
                         return impl.objects[edge.source().key()];
@@ -160,17 +163,17 @@ metagraph.get_table = function(spec) {
     return Object.assign(spec, {
         buildIndex: function(edge) {
             return {
-                deps: edge.value().value.index,
+                deps: edge.value().index,
                 funfun: function(defn, impl, index) {
                     return impl.data[edge.target().key()].map(function(val) {
-                        return index[edge.target().value().value.keyFunction(val)];
+                        return index[edge.target().value().keyFunction(val)];
                     });
                 }
             };
         },
         sourceMember: function(edge) {
             return {
-                name: edge.value().value.source_member,
+                name: edge.value().source_member,
                 deps: edge.key(),
                 funfun: function(defn, impl, val) {
                     return function(list) {
@@ -187,12 +190,12 @@ metagraph.many_to_one = function(spec) {
     return Object.assign(spec, {
         buildIndex: function(edge) {
             return {
-                deps: edge.value().value.target_deps,
+                deps: edge.value().target_deps,
                 funfun: function(defn, impl, index) {
                         return impl.data[edge.source().key()].reduce(function(o, v) {
-                            var key = edge.value().value.access(v);
+                            var key = edge.value().access(v);
                             var list = o[key] = o[key] || [];
-                            list.push(index[edge.source().value().value.keyFunction(v)]);
+                            list.push(index[edge.source().value().keyFunction(v)]);
                             return o;
                         }, {});
                 }
@@ -200,12 +203,12 @@ metagraph.many_to_one = function(spec) {
         },
         sourceMember: function(edge) {
             return {
-                name: edge.value().value.source_member,
-                deps: edge.value().value.source_deps,
+                name: edge.value().source_member,
+                deps: edge.value().source_deps,
                 funfun: function(defn, impl, val) {
                     return function(index) {
                         return function() {
-                            return index[edge.value().value.access(val)];
+                            return index[edge.value().access(val)];
                         };
                     };
                 }
@@ -213,12 +216,12 @@ metagraph.many_to_one = function(spec) {
         },
         targetMember: function(edge) {
             return {
-                name: edge.value().value.target_member,
+                name: edge.value().target_member,
                 deps: edge.key(),
                 funfun: function(defn, impl, val) {
                     return function(index) {
                         return function() {
-                            return index[edge.target().value().value.keyFunction(val)];
+                            return index[edge.target().value().keyFunction(val)];
                         };
                     };
                 }

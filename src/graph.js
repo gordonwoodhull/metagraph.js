@@ -6,6 +6,8 @@ metagraph.graph = function(nodes, edges, options) {
     options = Object.assign({
         nodeKey: function(kv) { return kv.key; },
         edgeKey: function(kv) { return kv.key; },
+        nodeValue: function(kv) { return kv.value; },
+        edgeValue: function(kv) { return kv.value; },
         edgeSource: function(kv) { return kv.value.source; },
         edgeTarget: function(kv) { return kv.value.target; }
     }, options || {});
@@ -55,7 +57,7 @@ metagraph.graph = function(nodes, edges, options) {
     function node_wrapper(n) {
         return {
             value: function() {
-                return n;
+                return options.nodeValue(n);
             },
             key: function() {
                 return options.nodeKey(n);
@@ -76,7 +78,7 @@ metagraph.graph = function(nodes, edges, options) {
     function edge_wrapper(e) {
         return {
             value: function() {
-                return e;
+                return options.edgeValue(e);
             },
             key: function() {
                 return options.edgeKey(e);
