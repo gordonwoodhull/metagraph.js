@@ -1,8 +1,8 @@
 /**
  * The reason there are so many higher-order functions is that there are five
  * stages of a pattern's life:
- * - specification - the user specifies a pattern by calling one_to_many and
- *   friends
+ * - specification - the pattern author specifies a pattern by calling one_to_many and
+ *   friends. the pattern make take options with accessors for reading raw array data
  * - definition (compilation) - the pattern walks the resulting graph and
  *   defines the functions that will respond to data
  * - instantiation - data is provided to the pattern to create objects
