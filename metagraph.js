@@ -1,5 +1,5 @@
 /*!
- *  metagraph.js 0.0.3
+ *  metagraph.js 0.0.4
  *  http://gordonwoodhull.github.io/metagraph.js/
  *  Copyright 2017 AT&T Intellectual Property
  *
@@ -28,7 +28,7 @@
 'use strict';
 
 var metagraph = {
-    version: '0.0.3'
+    version: '0.0.4'
 };
 var mg = metagraph;
 
@@ -114,11 +114,11 @@ metagraph.graph = function(nodes, edges, options) {
             },
             outs: function() {
                 build_outs_index();
-                return _outsList[options.nodeKey(n)];
+                return _outsList[options.nodeKey(n)] || [];
             },
             ins: function() {
                 build_ins_index();
-                return _insList[options.nodeKey(n)];
+                return _insList[options.nodeKey(n)] || [];
             }
         };
     }
@@ -237,34 +237,40 @@ metagraph.pattern = function(spec) {
             defn.node[edge.target().key()].members[targmem.name] = funfun;
         }
     });
+    graph.nodes().forEach(function(node) {
+        defn.node[node.key()].wrap = function(impl, val) {
+            var wrapper = {};
+            Object.keys(defn.node[node.key()].members).forEach(function(member) {
+                wrapper[member] = defn.node[node.key()].members[member](defn, impl, val);
+            });
+            // these two seem somewhat specific; should *_type also contribute to interface?
+            if(node.value().keyFunction)
+                wrapper.key = function() {
+                    return node.value().keyFunction(val);
+                };
+            if(node.value().valueFunction)
+                wrapper.value = function() {
+                    return node.value().valueFunction(val);
+                };
+            return wrapper;
+        };
+    });
+
     return function(data) {
         var impl = {
             indices: {},
             objects: {},
             data: data
         };
-        graph.nodes().forEach(function(node) {
-            defn.node[node.key()].wrap = function(val) {
-                var wrapper = {};
-                Object.keys(defn.node[node.key()].members).forEach(function(member) {
-                    wrapper[member] = defn.node[node.key()].members[member](defn, impl, val);
-                });
-                // these two seem somewhat specific; should *_type also contribute to interface?
-                if(node.value().keyFunction)
-                    wrapper.key = function() {
-                        return node.value().keyFunction(val);
-                    };
-                if(node.value().valueFunction)
-                    wrapper.value = function() {
-                        return node.value().valueFunction(val);
-                    };
-                return wrapper;
-            };
-            if(node.value().single)
-                impl.objects[node.key()] = defn.node[node.key()].wrap(data[node.key()]);
-        });
         return {
             root: function(key) {
+                var node = graph.node(key);
+                if(!node)
+                    throw new Error("'" + key + "' is not a type in this pattern");
+                if(!graph.node(key).value().single)
+                    throw new Error("the type '" + key + "' is not a root");
+                if(!impl.objects[key])
+                    impl.objects[key] = defn.node[node.key()].wrap(impl, data[node.key()]);
                 return impl.objects[key];
             }
         };
@@ -295,7 +301,7 @@ metagraph.one_to_many = function(spec) {
                 funfun: function(defn, impl) {
                     return build_index(impl.data[edge.target().key()],
                                        edge.target().value().keyFunction,
-                                       defn.node[edge.target().key()].wrap);
+                                       defn.node[edge.target().key()].wrap.bind(null, impl));
                 }
             };
         },
@@ -386,7 +392,7 @@ metagraph.many_to_one = function(spec) {
                 funfun: function(defn, impl, val) {
                     return function(index) {
                         return function() {
-                            return index[edge.target().value().keyFunction(val)];
+                            return index[edge.target().value().keyFunction(val)] || [];
                         };
                     };
                 }
