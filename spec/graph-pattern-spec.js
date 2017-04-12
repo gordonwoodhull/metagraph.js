@@ -143,4 +143,101 @@ describe('graph_pattern', function() {
             expect(graph2.edge('F').value().n).toEqual(-42);
         });
     });
+    // use accessor calls as a proxy for index building
+    // (which we could also instrument but it would be messy)
+    describe('laziness', function() {
+        var accessors;
+        beforeEach(function() {
+            accessors = {
+                nodeKey: function(kv) { return kv.key; },
+                edgeKey: function(kv) { return kv.key; },
+                nodeValue: function(kv) { return kv.value; },
+                edgeValue: function(kv) { return kv.value; },
+                edgeSource: function(kv) { return kv.value.source; },
+                edgeTarget: function(kv) { return kv.value.target; }
+            };
+            spyOn(accessors, 'nodeKey').and.callThrough();
+            spyOn(accessors, 'edgeKey').and.callThrough();
+            spyOn(accessors, 'nodeValue').and.callThrough();
+            spyOn(accessors, 'edgeValue').and.callThrough();
+            spyOn(accessors, 'edgeSource').and.callThrough();
+            spyOn(accessors, 'edgeTarget').and.callThrough();
+            graph = metagraph.pattern(metagraph.graph_pattern(accessors))({
+                Graph: {},
+                Node: [
+                    {key: 'a'},
+                    {key: 'b'},
+                    {key: 'c', value: {n: 17}},
+                    {key: 'd'}
+                ],
+                Edge: [
+                    {key: 'e', value: {source: 'a', target: 'b'}},
+                    {key: 'f', value: {source: 'a', target: 'c', n: 42}},
+                    {key: 'g', value: {source: 'c', target: 'd'}}
+                ]
+            }).root('Graph');
+        });
+        it('instantiation doesn\'t call any accessors', function() {
+            expect(accessors.nodeKey).not.toHaveBeenCalled();
+            expect(accessors.edgeKey).not.toHaveBeenCalled();
+            expect(accessors.nodeValue).not.toHaveBeenCalled();
+            expect(accessors.edgeValue).not.toHaveBeenCalled();
+            expect(accessors.edgeSource).not.toHaveBeenCalled();
+            expect(accessors.edgeTarget).not.toHaveBeenCalled();
+        });
+        it('calling graph.nodes invokes nodeKey only', function() {
+            graph.nodes();
+            expect(accessors.nodeKey).toHaveBeenCalled();
+            expect(accessors.edgeKey).not.toHaveBeenCalled();
+            expect(accessors.nodeValue).not.toHaveBeenCalled();
+            expect(accessors.edgeValue).not.toHaveBeenCalled();
+            expect(accessors.edgeSource).not.toHaveBeenCalled();
+            expect(accessors.edgeTarget).not.toHaveBeenCalled();
+        });
+        it('calling graph.edges invokes edgeKey only', function() {
+            graph.edges();
+            expect(accessors.nodeKey).not.toHaveBeenCalled();
+            expect(accessors.edgeKey).toHaveBeenCalled();
+            expect(accessors.nodeValue).not.toHaveBeenCalled();
+            expect(accessors.edgeValue).not.toHaveBeenCalled();
+            expect(accessors.edgeSource).not.toHaveBeenCalled();
+            expect(accessors.edgeTarget).not.toHaveBeenCalled();
+        });
+        it('calling graph.node(x).value() invokes nodeKey and nodeValue only', function() {
+            graph.node('a').value();
+            expect(accessors.nodeKey).toHaveBeenCalled();
+            expect(accessors.edgeKey).not.toHaveBeenCalled();
+            expect(accessors.nodeValue).toHaveBeenCalled();
+            expect(accessors.edgeValue).not.toHaveBeenCalled();
+            expect(accessors.edgeSource).not.toHaveBeenCalled();
+            expect(accessors.edgeTarget).not.toHaveBeenCalled();
+        });
+        it('calling graph.edge(x).value() invokes edgeKey and edgeValue only', function() {
+            graph.edge('e').value();
+            expect(accessors.nodeKey).not.toHaveBeenCalled();
+            expect(accessors.edgeKey).toHaveBeenCalled();
+            expect(accessors.nodeValue).not.toHaveBeenCalled();
+            expect(accessors.edgeValue).toHaveBeenCalled();
+            expect(accessors.edgeSource).not.toHaveBeenCalled();
+            expect(accessors.edgeTarget).not.toHaveBeenCalled();
+        });
+        it('calling graph.edge(x).source() invokes nodeKey, edgeKey and edgeSource only', function() {
+            graph.edge('e').source();
+            expect(accessors.nodeKey).toHaveBeenCalled();
+            expect(accessors.edgeKey).toHaveBeenCalled();
+            expect(accessors.nodeValue).not.toHaveBeenCalled();
+            expect(accessors.edgeValue).not.toHaveBeenCalled();
+            expect(accessors.edgeSource).toHaveBeenCalled();
+            expect(accessors.edgeTarget).not.toHaveBeenCalled();
+        });
+        it('calling graph.edge(x).target() invokes nodeKey, edgeKey and edgeTarget only', function() {
+            graph.edge('e').target();
+            expect(accessors.nodeKey).toHaveBeenCalled();
+            expect(accessors.edgeKey).toHaveBeenCalled();
+            expect(accessors.nodeValue).not.toHaveBeenCalled();
+            expect(accessors.edgeValue).not.toHaveBeenCalled();
+            expect(accessors.edgeSource).not.toHaveBeenCalled();
+            expect(accessors.edgeTarget).toHaveBeenCalled();
+        });
+    });
 });
