@@ -34,8 +34,8 @@ metagraph.pattern = function(spec) {
 
     graph.edges().forEach(function(edge) {
         var ekey = edge.key(), evalue = edge.value();
-        if(evalue.member.buildIndex) {
-            var buind = evalue.member.buildIndex(edge);
+        if(evalue.member.data) {
+            var buind = evalue.member.data(edge);
             defn.indices[ekey] = function(defn, impl) {
                 if(!impl.indices[ekey]) {
                     var args = [defn, impl], index;
@@ -55,7 +55,7 @@ metagraph.pattern = function(spec) {
         if(evalue.member.member) {
             var mem = evalue.member.member(edge);
             var deps;
-            if(evalue.member.buildIndex)
+            if(evalue.member.data)
                 deps = [ekey];
             else if(evalue.deps)
                 deps = Array.isArray(evalue.deps) ? evalue.deps : [evalue.deps];
@@ -65,10 +65,8 @@ metagraph.pattern = function(spec) {
     });
     graph.nodes().forEach(function(node) {
         var nkey = node.key(), nvalue = node.value();
-        if(!nvalue.single)
-            defn.indices['node.' + nkey] = function(defn, impl) {
-                return impl.data[nkey];
-            };
+        if(nvalue.data)
+            defn.indices['node.' + nkey] = nvalue.data(node);
         defn.node[nkey].wrap = function(impl, val) {
             var wrapper = {};
             Object.keys(defn.node[nkey].members).forEach(function(member) {
@@ -91,7 +89,7 @@ metagraph.pattern = function(spec) {
         var impl = {
             indices: {},
             objects: {},
-            data: data
+            source_data: data
         };
         return {
             root: function(key) {
@@ -121,13 +119,18 @@ metagraph.single_type = function() {
 metagraph.table_type = function(keyf, valuef) {
     return Object.assign(mg.basic_type(), {
         keyFunction: keyf,
-        valueFunction: valuef
+        valueFunction: valuef,
+        data: function(node) {
+            return function(defn, impl) {
+                return impl.source_data[node.key()];
+            };
+        }
     });
 };
 
 metagraph.lookup = function(memberName) {
     return {
-        buildIndex: function(edge) {
+        data: function(edge) {
             return function(defn, impl, data) {
                 return build_index(data,
                                    edge.target().value().keyFunction,
@@ -164,7 +167,7 @@ metagraph.one = function(memberName) {
 };
 metagraph.list = function(memberName) {
     return {
-        buildIndex: function(edge) {
+        data: function(edge) {
             return function(defn, impl, data, index) {
                 return data.map(function(val) {
                     return index[edge.target().value().keyFunction(val)];
@@ -203,7 +206,7 @@ metagraph.lookupFrom = function(memberName, access) {
 };
 metagraph.listFrom = function(memberName, access) {
     return {
-        buildIndex: function(edge) {
+        data: function(edge) {
             return function(defn, impl, data, index) {
                 return data.reduce(function(o, v) {
                     var key = access(v);
