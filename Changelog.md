@@ -1,3 +1,8 @@
+# 0.0.6
+ * indices are now just data, all data is lazily loaded
+ * nodes have data which should be overridable (when we get to pattern assembly)
+ * move `name` to edges from specs `memberName`, simplify spec to `{data, funfun}`
+
 # 0.0.5
  * member specs are simplified, hopefully clearer and better named. they define a single member on
    the source type only
