@@ -15,33 +15,53 @@ metagraph.graph_pattern = function(options) {
             Edge: mg.table_type(options.edgeKey, options.edgeValue)
         },
         edges: {
-            graph_node: mg.one_to_many({
+            graph_node: {
                 source: 'Graph', target: 'Node',
-                source_member: 'node', target_member: 'graph'
-            }),
-            graph_nodes: mg.get_table({
+                deps: 'node.Node',
+                member: mg.lookup('node')
+            },
+            node_graph: {
+                source: 'Node', target: 'Graph',
+                member: mg.one('graph')
+            },
+            graph_nodes: {
                 source: 'Graph', target: 'Node',
-                source_member: 'nodes', index: 'graph_node'
-            }),
-            graph_edge: mg.one_to_many({
+                deps: ['node.Node', 'graph_node'],
+                member: mg.list('nodes')
+            },
+            graph_edge: {
                 source: 'Graph', target: 'Edge',
-                source_member: 'edge', target_member: 'graph'
-            }),
-            graph_edges: mg.get_table({
+                deps: 'node.Edge',
+                member: mg.lookup('edge')
+            },
+            edge_graph: {
+                source: 'Edge', target: 'Graph',
+                member: mg.one('graph')
+            },
+            graph_edges: {
                 source: 'Graph', target: 'Edge',
-                source_member: 'edges', index: 'graph_edge'
-            }),
-            edge_source: mg.many_to_one({
+                deps: ['node.Edge', 'graph_edge'],
+                member: mg.list('edges')
+            },
+            edge_source: {
                 source: 'Edge', target: 'Node',
-                source_member: 'source', source_deps: 'graph_node',
-                target_member: 'outs', target_deps: 'graph_edge',
-                access: options.edgeSource
-            }),
-            edge_target: mg.many_to_one({
+                deps: 'graph_node',
+                member: mg.lookupFrom('source', options.edgeSource)
+            },
+            node_outs: {
+                source: 'Node', target: 'Edge',
+                deps: ['node.Edge', 'graph_edge'],
+                member: mg.listFrom('outs', options.edgeSource)
+            },
+            edge_target: {
                 source: 'Edge', target: 'Node',
-                source_member: 'target', source_deps: 'graph_node',
-                target_member: 'ins', target_deps: 'graph_edge',
-                access: options.edgeTarget
-            })
+                deps: 'graph_node',
+                member: mg.lookupFrom('target', options.edgeTarget)
+            },
+            node_ins: {
+                source: 'Node', target: 'Edge',
+                deps: ['node.Edge', 'graph_edge'],
+                member: mg.listFrom('ins', options.edgeTarget)
+            }
         }};
 };

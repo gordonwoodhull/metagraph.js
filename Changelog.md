@@ -1,3 +1,10 @@
+# 0.0.5
+ * member specs are simplified, hopefully clearer and better named. they define a single member on
+   the source type only
+ * possible to depend on node "indices" which currently are just the data
+ * all dependencies are explicit and at graph level rather than spec level
+ * remove artifacts until anything should be done with this library but test it
+
 # 0.0.4
  * wrapper was bound too late, causing a pattern instantiated twice to have data replaced
  * roots (singleton objects) are lazily instantiated
