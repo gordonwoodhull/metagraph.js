@@ -52,15 +52,15 @@ metagraph.pattern = function(spec) {
                 return impl.indices[ekey];
             };
         }
-        if(evalue.member.member) {
-            var mem = evalue.member.member(edge);
+        if(evalue.member.funfun) {
+            var funfun = evalue.member.funfun(edge);
             var deps;
             if(evalue.member.data)
                 deps = [ekey];
             else if(evalue.deps)
                 deps = Array.isArray(evalue.deps) ? evalue.deps : [evalue.deps];
-            var funfun = deps ? resolve(deps, mem.funfun) : mem.funfun;
-            defn.node[edge.source().key()].members[mem.name] = funfun;
+            funfun = deps ? resolve(deps, funfun) : funfun;
+            defn.node[edge.source().key()].members[evalue.name] = funfun;
         }
     });
     graph.nodes().forEach(function(node) {
@@ -128,7 +128,7 @@ metagraph.table_type = function(keyf, valuef) {
     });
 };
 
-metagraph.lookup = function(memberName) {
+metagraph.lookup = function() {
     return {
         data: function(edge) {
             return function(defn, impl, data) {
@@ -137,35 +137,29 @@ metagraph.lookup = function(memberName) {
                                    defn.node[edge.target().key()].wrap.bind(null, impl));
             };
         },
-        member: function(edge) {
-            return {
-                name: memberName,
-                funfun: function(defn, impl, val) {
-                    return function(index) {
-                        return function(key) {
-                            return index[key];
-                        };
+        funfun: function(edge) {
+            return function(defn, impl, val) {
+                return function(index) {
+                    return function(key) {
+                        return index[key];
                     };
-                }
+                };
             };
         }
     };
 };
-metagraph.one = function(memberName) {
+metagraph.one = function() {
     return {
-        member: function(edge) {
-            return {
-                name: memberName,
-                funfun: function(defn, impl, val) {
-                    return function() {
-                        return impl.objects[edge.target().key()];
-                    };
-                }
+        funfun: function(edge) {
+            return function(defn, impl, val) {
+                return function() {
+                    return impl.objects[edge.target().key()];
+                };
             };
         }
     };
 };
-metagraph.list = function(memberName) {
+metagraph.list = function() {
     return {
         data: function(edge) {
             return function(defn, impl, data, index) {
@@ -174,37 +168,31 @@ metagraph.list = function(memberName) {
                 });
             };
         },
-        member: function(edge) {
-            return {
-                name: memberName,
-                funfun: function(defn, impl, val) {
-                    return function(list) {
-                        return function() {
-                            return list;
-                        };
+        funfun: function(edge) {
+            return function(defn, impl, val) {
+                return function(list) {
+                    return function() {
+                        return list;
                     };
-                }
+                };
             };
         }
     };
 };
-metagraph.lookupFrom = function(memberName, access) {
+metagraph.lookupFrom = function(access) {
     return {
-        member: function(edge) {
-            return {
-                name: memberName,
-                funfun: function(defn, impl, val) {
-                    return function(index) {
-                        return function() {
-                            return index[access(val)];
-                        };
+        funfun: function(edge) {
+            return function(defn, impl, val) {
+                return function(index) {
+                    return function() {
+                        return index[access(val)];
                     };
-                }
+                };
             };
         }
     };
 };
-metagraph.listFrom = function(memberName, access) {
+metagraph.listFrom = function(access) {
     return {
         data: function(edge) {
             return function(defn, impl, data, index) {
@@ -216,16 +204,13 @@ metagraph.listFrom = function(memberName, access) {
                 }, {});
             };
         },
-        member: function(edge) {
-            return {
-                name: memberName,
-                funfun: function(defn, impl, val) {
-                    return function(index) {
-                        return function() {
-                            return index[edge.source().value().keyFunction(val)] || [];
-                        };
+        funfun: function(edge) {
+            return function(defn, impl, val) {
+                return function(index) {
+                    return function() {
+                        return index[edge.source().value().keyFunction(val)] || [];
                     };
-                }
+                };
             };
         }
     };
