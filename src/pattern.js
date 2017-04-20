@@ -33,11 +33,11 @@ metagraph.pattern = function(spec) {
     }
 
     graph.edges().forEach(function(edge) {
-        var evalue = edge.value();
+        var ekey = edge.key(), evalue = edge.value();
         if(evalue.member.buildIndex) {
             var buind = evalue.member.buildIndex(edge);
-            defn.indices[edge.key()] = function(defn, impl) {
-                if(!impl.indices[edge.key()]) {
+            defn.indices[ekey] = function(defn, impl) {
+                if(!impl.indices[ekey]) {
                     var args = [defn, impl], index;
                     if(evalue.deps) {
                         var deps = Array.isArray(evalue.deps) ? evalue.deps : [evalue.deps];
@@ -47,16 +47,16 @@ metagraph.pattern = function(spec) {
                         index = buind.apply(null, args);
                     }
                     else index = buind(defn, impl);
-                    impl.indices[edge.key()] = index;
+                    impl.indices[ekey] = index;
                 }
-                return impl.indices[edge.key()];
+                return impl.indices[ekey];
             };
         }
         if(evalue.member.member) {
             var mem = evalue.member.member(edge);
             var deps;
             if(evalue.member.buildIndex)
-                deps = [edge.key()];
+                deps = [ekey];
             else if(evalue.deps)
                 deps = Array.isArray(evalue.deps) ? evalue.deps : [evalue.deps];
             var funfun = deps ? resolve(deps, mem.funfun) : mem.funfun;
@@ -64,23 +64,24 @@ metagraph.pattern = function(spec) {
         }
     });
     graph.nodes().forEach(function(node) {
-        if(!node.value().single)
-            defn.indices['node.' + node.key()] = function(defn, impl) {
-                return impl.data[node.key()];
+        var nkey = node.key(), nvalue = node.value();
+        if(!nvalue.single)
+            defn.indices['node.' + nkey] = function(defn, impl) {
+                return impl.data[nkey];
             };
-        defn.node[node.key()].wrap = function(impl, val) {
+        defn.node[nkey].wrap = function(impl, val) {
             var wrapper = {};
-            Object.keys(defn.node[node.key()].members).forEach(function(member) {
-                wrapper[member] = defn.node[node.key()].members[member](defn, impl, val);
+            Object.keys(defn.node[nkey].members).forEach(function(member) {
+                wrapper[member] = defn.node[nkey].members[member](defn, impl, val);
             });
             // these two seem somewhat specific; should *_type also contribute to interface?
-            if(node.value().keyFunction)
+            if(nvalue.keyFunction)
                 wrapper.key = function() {
-                    return node.value().keyFunction(val);
+                    return nvalue.keyFunction(val);
                 };
-            if(node.value().valueFunction)
+            if(nvalue.valueFunction)
                 wrapper.value = function() {
-                    return node.value().valueFunction(val);
+                    return nvalue.valueFunction(val);
                 };
             return wrapper;
         };
