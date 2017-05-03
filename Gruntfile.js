@@ -211,5 +211,6 @@ module.exports.jsFiles = [
     'src/graph.js',
     'src/pattern.js',
     'src/graph_pattern.js',
+    'src/topological_sort.js',
     'src/footer.js'  // NOTE: keep this last
 ];
