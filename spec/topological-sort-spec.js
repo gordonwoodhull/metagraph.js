@@ -4,6 +4,11 @@ describe('graph_pattern', function() {
     function get_key(n) {
         return n.key();
     }
+    function get_nodes(graph, keys) {
+        return keys.map(function(i) {
+            return graph.node(i);
+        });
+    }
     function topologically_sorted(graph, list) {
         var id = list.reduce(function(p, v, i) {
             p[v.key()] = i;
@@ -93,6 +98,23 @@ describe('graph_pattern', function() {
             console.log(metagraph.topological_sort(graph).map(get_key));
             expect(topologically_sorted(graph,
                                         metagraph.topological_sort(graph))).toBeTruthy();
+        });
+        describe('verify the verifier', function() {
+            it('3564120 is a topological sort', function() {
+                expect(topologically_sorted(graph, get_nodes(graph, [3, 5, 6, 4, 1, 2, 0]))).toBeTruthy();
+            });
+            it('3120564 is a topological sort', function() {
+                expect(topologically_sorted(graph, get_nodes(graph, [3, 1, 2, 0, 5, 6, 4]))).toBeTruthy();
+            });
+            it('3156240 is a topological sort', function() {
+                expect(topologically_sorted(graph, get_nodes(graph, [3, 1, 5, 6, 2, 4, 0]))).toBeTruthy();
+            });
+            it('3150426 is a topological sort', function() {
+                expect(topologically_sorted(graph, get_nodes(graph, [3, 1, 5, 0, 4, 2, 6]))).toBeTruthy();
+            });
+            it('3145026 is not a topological sort', function() {
+                expect(topologically_sorted(graph, get_nodes(graph, [3, 1, 4, 5, 0, 2, 6]))).toBeFalsy();
+            });
         });
     });
 });
