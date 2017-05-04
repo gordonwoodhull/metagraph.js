@@ -212,6 +212,8 @@ module.exports.jsFiles = [
     'src/dataflow.js',
     'src/pattern.js',
     'src/graph_pattern.js',
+    'src/subgraph_pattern.js',
     'src/topological_sort.js',
+    'src/compose.js',
     'src/footer.js'  // NOTE: keep this last
 ];

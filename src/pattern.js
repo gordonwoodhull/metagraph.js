@@ -117,7 +117,10 @@ metagraph.basic_type = function() {
 };
 metagraph.single_type = function() {
     return Object.assign(mg.basic_type(), {
-        single: true
+        single: true,
+        valueFunction: function(val) {
+            return val;
+        }
     });
 };
 metagraph.table_type = function(keyf, valuef) {
@@ -130,6 +133,12 @@ metagraph.table_type = function(keyf, valuef) {
             };
         }
     });
+};
+metagraph.reference = function(role) {
+    return {
+        single: role.value().single,
+        reference: role
+    };
 };
 
 metagraph.lookup = function() {
@@ -213,6 +222,29 @@ metagraph.listFrom = function(access) {
                 return function(index) {
                     return function() {
                         return index[edge.source().value().keyFunction(val)] || [];
+                    };
+                };
+            };
+        }
+    };
+metagraph.select = function() {
+    return {
+        data: function(edge) {
+            return function(defn, impl, items, keys) {
+                var set = d3.set(keys);
+                return items.filter(function(r) {
+                    return set.has(edge.source().value().keyFunction(keys));
+                });
+            };
+        }
+    };
+};
+metagraph.create = function() {
+    return {
+        funfun: function(edge) {
+            return function(defn, impl, val) {
+                return function() {
+                    return function(data) {
                     };
                 };
             };
