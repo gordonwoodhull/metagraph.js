@@ -6,7 +6,7 @@ describe('graph_pattern', function() {
     }
     describe('adcdefg', function() {
         beforeEach(function() {
-            graph = metagraph.pattern(metagraph.graph_pattern())({
+            graph = metagraph.pattern(metagraph.graph_pattern()).node('Graph').value().create({
                 Graph: {},
                 Node: [
                     {key: 'a'},
@@ -19,7 +19,7 @@ describe('graph_pattern', function() {
                     {key: 'f', value: {source: 'a', target: 'c', n: 42}},
                     {key: 'g', value: {source: 'c', target: 'd'}}
                 ]
-            }).root('Graph');
+            });
         });
         it('has nodes a,b,c,d', function() {
             expect(graph.nodes().map(get_key)).toEqual(['a','b','c','d']);
@@ -67,7 +67,7 @@ describe('graph_pattern', function() {
         var pattern, graph1, graph2;
         beforeEach(function() {
             pattern = metagraph.pattern(metagraph.graph_pattern());
-            var pi1 = pattern({
+            graph1 = pattern.node('Graph').value().create({
                 Graph: {},
                 Node: [
                     {key: 'a'},
@@ -79,7 +79,7 @@ describe('graph_pattern', function() {
                     {key: 'f', value: {source: 'b', target: 'c', n: 42}}
                 ]
             });
-            var pi2 = pattern({
+            graph2 = pattern.node('Graph').value().create({
                 Graph: {},
                 Node: [
                     {key: 'A'},
@@ -91,8 +91,6 @@ describe('graph_pattern', function() {
                     {key: 'F', value: {source: 'B', target: 'C', n: -42}}
                 ]
             });
-            graph1 = pi1.root('Graph');
-            graph2 = pi2.root('Graph');
         });
         it('have their own nodes', function() {
             expect(graph1.nodes().map(get_key)).toEqual(['a','b','c']);
@@ -162,7 +160,7 @@ describe('graph_pattern', function() {
             spyOn(accessors, 'edgeValue').and.callThrough();
             spyOn(accessors, 'edgeSource').and.callThrough();
             spyOn(accessors, 'edgeTarget').and.callThrough();
-            graph = metagraph.pattern(metagraph.graph_pattern(accessors))({
+            graph = metagraph.pattern(metagraph.graph_pattern(accessors)).node('Graph').value().create({
                 Graph: {},
                 Node: [
                     {key: 'a'},
@@ -175,7 +173,7 @@ describe('graph_pattern', function() {
                     {key: 'f', value: {source: 'a', target: 'c', n: 42}},
                     {key: 'g', value: {source: 'c', target: 'd'}}
                 ]
-            }).root('Graph');
+            });
         });
         it('instantiation doesn\'t call any accessors', function() {
             expect(accessors.nodeKey).not.toHaveBeenCalled();

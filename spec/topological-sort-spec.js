@@ -20,7 +20,7 @@ describe('graph_pattern', function() {
     }
     describe('adcdefg', function() {
         beforeEach(function() {
-            graph = metagraph.pattern(metagraph.graph_pattern())({
+            graph = metagraph.pattern(metagraph.graph_pattern()).node('Graph').value().create({
                 Graph: {},
                 Node: [
                     {key: 'a'},
@@ -33,7 +33,7 @@ describe('graph_pattern', function() {
                     {key: 'f', value: {source: 'a', target: 'c', n: 42}},
                     {key: 'g', value: {source: 'c', target: 'd'}}
                 ]
-            }).root('Graph');
+            });
         });
         it('is already topologically sorted', function() {
             expect(topologically_sorted(graph, graph.nodes())).toBeTruthy();
@@ -45,7 +45,7 @@ describe('graph_pattern', function() {
     });
     describe('gfedcba', function() {
         beforeEach(function() {
-            graph = metagraph.pattern(metagraph.graph_pattern())({
+            graph = metagraph.pattern(metagraph.graph_pattern()).node('Graph').value().create({
                 Graph: {},
                 Node: [
                     {key: 'a'},
@@ -58,7 +58,7 @@ describe('graph_pattern', function() {
                     {key: 'f', value: {source: 'c', target: 'a'}},
                     {key: 'g', value: {source: 'd', target: 'c'}}
                 ]
-            }).root('Graph');
+            });
         });
         it('is not already topologically sorted', function() {
             expect(topologically_sorted(graph, graph.nodes())).toBeFalsy();
@@ -70,7 +70,7 @@ describe('graph_pattern', function() {
     });
     describe('binary tree', function() {
         beforeEach(function() {
-            graph = metagraph.pattern(metagraph.graph_pattern())({
+            graph = metagraph.pattern(metagraph.graph_pattern()).node('Graph').value().create({
                 Graph: {},
                 Node: [
                     {key: 0},
@@ -89,7 +89,7 @@ describe('graph_pattern', function() {
                     {key: 4, value: {source: 5, target: 4}},
                     {key: 5, value: {source: 5, target: 6}}
                 ]
-            }).root('Graph');
+            });
         });
         it('is not already topologically sorted', function() {
             expect(topologically_sorted(graph, graph.nodes())).toBeFalsy();

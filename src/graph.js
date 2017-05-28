@@ -113,5 +113,5 @@ metagraph.graph = function(nodes, edges, options) {
         }
     };
     return _graph;
-}
+};
 

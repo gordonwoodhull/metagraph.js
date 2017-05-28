@@ -85,25 +85,29 @@ metagraph.pattern = function(spec) {
         };
     });
 
-    return function(data) {
-        var impl = {
-            indices: {},
-            objects: {},
-            source_data: data
-        };
-        return {
-            root: function(key) {
-                var node = graph.node(key);
-                if(!node)
-                    throw new Error("'" + key + "' is not a type in this pattern");
-                if(!graph.node(key).value().single)
-                    throw new Error("the type '" + key + "' is not a root");
-                if(!impl.objects[key])
-                    impl.objects[key] = defn.node[node.key()].wrap(impl, data[node.key()]);
-                return impl.objects[key];
+    var nodes2 = graph.nodes().map(function(n) {
+        var n2 = {key: n.key(), value: {}};
+        if(n.value().single)
+            n2.value.create = function(data) {
+                var impl = {
+                    indices: {},
+                    objects: {},
+                    source_data: data
+                };
+                return (impl.objects[n.key()] = defn.node[n.key()].wrap(impl, data[n.key()]));
+            };
+        return n2;
+    });
+    var edges2 = graph.edges().map(function(e) {
+        var e2 = {
+            key: e.key(),
+            value: {
+                source: e.source().key(),
+                target: e.target().key()
             }
         };
-    };
+    });
+    return mg.graph(nodes2, edges2);
 };
 
 metagraph.basic_type = function() {
@@ -214,4 +218,5 @@ metagraph.listFrom = function(access) {
             };
         }
     };
-}
+};
+};
