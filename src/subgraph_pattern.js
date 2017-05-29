@@ -21,18 +21,18 @@ metagraph.subgraph_pattern = function(options) {
             edges: {
                 subnode: {
                     source: 'ParentNode', target: 'ChildNode',
-                    deps: ['node.ParentNode', 'node.ChildNode'],
-                    member: mg.select(options.nodeKey)
+                    deps: ['node.ParentNode', 'other.NodeKeys'],
+                    flow: mg.select(options.nodeKey)
                 },
                 subedge: {
                     source: 'ParentEdge', target: 'ChildEdge',
-                    deps: ['node.ParentEdge', 'node.ChildEdge'],
-                    member: mg.select(options.edgeKey)
+                    deps: ['node.ParentEdge', 'other.EdgeKeys'],
+                    flow: mg.select(options.edgeKey)
                 },
                 create: {
                     name: 'subgraph',
                     source: 'ParentGraph', target: 'ChildGraph',
-                    member: mg.create()
+                    member: mg.create_subgraph()
                 }
             }
         };

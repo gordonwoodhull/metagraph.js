@@ -34,7 +34,8 @@ metagraph.pattern = function(spec) {
 
     graph.edges().forEach(function(edge) {
         var ekey = edge.key(), evalue = edge.value();
-        if(evalue.member.data) {
+        var action = evalue.member || evalue.flow;
+        if(action.data) {
             var buind = evalue.member.data(edge);
             defn.indices[ekey] = function(defn, impl) {
                 if(!impl.indices[ekey]) {
@@ -52,7 +53,7 @@ metagraph.pattern = function(spec) {
                 return impl.indices[ekey];
             };
         }
-        if(evalue.member.funfun) {
+        if(evalue.member && evalue.member.funfun) {
             var funfun = evalue.member.funfun(edge);
             var deps;
             if(evalue.member.data)
@@ -62,6 +63,10 @@ metagraph.pattern = function(spec) {
             funfun = deps ? resolve(deps, funfun) : funfun;
             defn.node[edge.source().key()].members[evalue.name] = funfun;
         }
+        if(evalue.flow)
+            edge.target().value().data = function(node) {
+                return defn.indices[ekey];
+            };
     });
     graph.nodes().forEach(function(node) {
         var nkey = node.key(), nvalue = node.value();
@@ -233,18 +238,22 @@ metagraph.select = function() {
             return function(defn, impl, items, keys) {
                 var set = d3.set(keys);
                 return items.filter(function(r) {
-                    return set.has(edge.source().value().keyFunction(keys));
+                    return set.has(edge.source().value().keyFunction(r));
                 });
             };
         }
     };
 };
-metagraph.create = function() {
+metagraph.create_subgraph = function() {
     return {
         funfun: function(edge) {
             return function(defn, impl, val) {
                 return function() {
-                    return function(data) {
+                    return function(nodeKeys, edgeKeys) {
+                        edge.target().value().create({
+                            ParentNode: impl.source_data[edge.source()],
+                            ParentEdge: impl.source_data
+                        });
                     };
                 };
             };
