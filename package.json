@@ -18,8 +18,7 @@
     "type": "git",
     "url": "https://github.com/gordonwoodhull/metagraph.js.git"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
     "grunt": "~1.0",
     "grunt-browserify": "~5.0",
@@ -33,8 +32,8 @@
     "grunt-contrib-watch": "~1.0",
     "grunt-gh-pages": "~2",
     "grunt-jscs": "~3.0",
-    "grunt-jsdoc": "~2.1",
-    "grunt-jsdoc-to-markdown": "~2.0",
+    "grunt-jsdoc": "~2.2",
+    "grunt-jsdoc-to-markdown": "~3",
     "grunt-saucelabs": "~9.0",
     "grunt-shell": "~2.1",
     "ink-docstrap": "~1.3",
