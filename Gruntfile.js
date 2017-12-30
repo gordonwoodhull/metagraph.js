@@ -209,6 +209,7 @@ module.exports.jsFiles = [
     'src/banner.js',   // NOTE: keep this first
     'src/core.js',
     'src/graph.js',
+    'src/dataflow.js',
     'src/pattern.js',
     'src/graph_pattern.js',
     'src/topological_sort.js',
