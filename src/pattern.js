@@ -124,10 +124,27 @@ metagraph.singleton = function() {
 };
 metagraph.list = function() {
     return {
+        data: function(edge) {
+            return function(defn, impl, data, map) {
+                return data.map(function(val) {
+                    return map[edge.target().value().keyFunction(val)];
+                });
+            };
+        }
     };
 };
 metagraph.map_of_lists = function() {
     return {
+        data: function(edge) {
+            return function(defn, impl, data, map) {
+                return data.reduce(function(o, v) {
+                    var key = access(v);
+                    var list = o[key] = o[key] || [];
+                    list.push(map[edge.target().value().keyFunction(v)]);
+                    return o;
+                }, {});
+            };
+        }
     };
 };
 metagraph.createable = function() {
@@ -218,13 +235,6 @@ metagraph.one = function() {
 };
 metagraph.list = function() {
     return {
-        data: function(edge) {
-            return function(defn, impl, data, map) {
-                return data.map(function(val) {
-                    return map[edge.target().value().keyFunction(val)];
-                });
-            };
-        },
         funfun: function(edge) {
             return function(defn, impl, val) {
                 return function(list) {
@@ -251,16 +261,6 @@ metagraph.lookupFrom = function(access) {
 };
 metagraph.listFrom = function(access) {
     return {
-        data: function(edge) {
-            return function(defn, impl, data, map) {
-                return data.reduce(function(o, v) {
-                    var key = access(v);
-                    var list = o[key] = o[key] || [];
-                    list.push(map[edge.target().value().keyFunction(v)]);
-                    return o;
-                }, {});
-            };
-        },
         funfun: function(edge) {
             return function(defn, impl, val) {
                 return function(map) {
@@ -271,6 +271,7 @@ metagraph.listFrom = function(access) {
             };
         }
     };
+};
 metagraph.select = function() {
     return {
         data: function(edge) {
@@ -298,5 +299,4 @@ metagraph.create_subgraph = function() {
             };
         }
     };
-};
 };
