@@ -1,14 +1,15 @@
 metagraph.dataflow = function(spec, options) {
-    var flow = mg.graph(spec.nodes, spec.edges, options);
-    return {
-        calc: function(id) {
-            var that = this;
-            var n = flow.node(id);
-            if(!n.value().result)
-                n.value().result = n.value().calc.apply(null, n.ins().map(function(e) {
-                    return that.calc(e.source().key());
+    var flowgraph = mg.graph(spec.nodes, spec.edges, options);
+    var _flow = {
+        calc: function(instance, id) {
+            if(!instance[id]) {
+                var n = flowgraph.node(id);
+                instance[id] = n.value().calc.apply(null, n.ins().map(function(e) {
+                    return _flow.calc(instance, e.source().key());
                 }));
-            return n.value().result;
+            }
+            return instance[id];
         }
     };
+    return _flow;
 };

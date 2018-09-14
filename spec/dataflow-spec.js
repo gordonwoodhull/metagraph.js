@@ -28,29 +28,36 @@ describe('dataflow', function() {
         }
         var spec = {
             nodes: [
-                {id: 'one', result: 1},
-                {id: 'two', result: 2},
-                {id: 'three', result: 3},
-                {id: 'one+one', calc: add},
-                {id: 'two*three', calc: multiply},
-                {id: 'two*three/(one+one)', calc: divide}
+                {id: 'a'},
+                {id: 'b'},
+                {id: 'c'},
+                {id: 'a+a', calc: add},
+                {id: 'b*c', calc: multiply},
+                {id: 'b*c/(a+a)', calc: divide}
             ],
             edges: [
-                {id: 'a', tail: 'one', head: 'one+one'},
-                {id: 'b', tail: 'one', head: 'one+one'},
-                {id: 'c', tail: 'two', head: 'two*three'},
-                {id: 'd', tail: 'three', head: 'two*three'},
-                {id: 'e', tail: 'two*three', head: 'two*three/(one+one)'},
-                {id: 'f', tail: 'one+one', head: 'two*three/(one+one)'}
+                {id: 'a', tail: 'a', head: 'a+a'},
+                {id: 'b', tail: 'a', head: 'a+a'},
+                {id: 'c', tail: 'b', head: 'b*c'},
+                {id: 'd', tail: 'c', head: 'b*c'},
+                {id: 'e', tail: 'b*c', head: 'b*c/(a+a)'},
+                {id: 'f', tail: 'a+a', head: 'b*c/(a+a)'}
             ]
         };
         var arithflow;
         beforeEach(function() {
             arithflow = metagraph.dataflow(spec, access);
         });
-        describe('from head', function() {
+        describe('with 1,2,3', function() {
+            var inst = {a: 1, b: 2, c: 3};
             it('results in 3', function() {
-                expect(arithflow.calc('two*three/(one+one)')).toBe(3);
+                expect(arithflow.calc(inst, 'b*c/(a+a)')).toBe(3);
+            });
+        });
+        describe('with 2,4,17', function() {
+            var inst = {a: 2, b: 4, c: 17};
+            it('results in 17', function() {
+                expect(arithflow.calc(inst, 'b*c/(a+a)')).toBe(17);
             });
         });
     });
