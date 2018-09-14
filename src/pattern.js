@@ -132,39 +132,34 @@ metagraph.map_of_lists = function() {
 };
 metagraph.createable = function() {
     return {
-        members: {
-            create: function(data) {
-                var impl = {
-                    indices: {},
-                    objects: {},
-                    source_data: data
+        class_members: {
+            create: function(flow, node) {
+                return function(defn) {
+                    return function(data) {
+                        var impl = {
+                            flow: flow.create({}),
+                            source_data: data
+                        };
+                        return (impl.objects[node.key()] = defn.node[node.key()].wrap(impl, data[node.key()]));
+                    };
                 };
-                return (impl.objects[n.key()] = defn.node[n.key()].wrap(impl, data[n.key()]));
             }
         }
     };
 };
-metagraph.call = function(f) {
-    return function(impl, val) {
-        return function() {
-            return f(val);
+metagraph.call = function(methodname) {
+    return function(f) {
+        return function(impl, val) {
+            var spec = {members: {}};
+            spec.members[methodname] = function() {
+                return f(val);
+            };
+            return spec;
         };
     };
 };
-metagraph.key = function(keyf) {
-    return {
-        members: {
-            key: mg.call(keyf)
-        }
-    };
-};
-metagraph.value = function(valuef) {
-    return {
-        members: {
-            key: mg.call(valuef)
-        }
-    };
-};
+metagraph.key = mg.call('key');
+metagraph.value = mg.call('value');
 
 metagraph.basic_type = function() {
     return {
