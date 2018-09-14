@@ -9,7 +9,7 @@ function object_to_keyvalue(o) {
     });
 }
 
-function build_index(vals, keyf, wrap) {
+function build_map(vals, keyf, wrap) {
     return vals.reduce(function(o, val) {
         o[keyf(val)] = wrap(val);
         return o;

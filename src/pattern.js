@@ -77,30 +77,12 @@ metagraph.pattern = function(spec) {
             Object.keys(defn.node[nkey].members).forEach(function(member) {
                 wrapper[member] = defn.node[nkey].members[member](defn, impl, val);
             });
-            // these two seem somewhat specific; should *_type also contribute to interface?
-            if(nvalue.keyFunction)
-                wrapper.key = function() {
-                    return nvalue.keyFunction(val);
-                };
-            if(nvalue.valueFunction)
-                wrapper.value = function() {
-                    return nvalue.valueFunction(val);
-                };
             return wrapper;
         };
     });
 
     var nodes2 = graph.nodes().map(function(n) {
         var n2 = {key: n.key(), value: {}};
-        if(n.value().single)
-            n2.value.create = function(data) {
-                var impl = {
-                    indices: {},
-                    objects: {},
-                    source_data: data
-                };
-                return (impl.objects[n.key()] = defn.node[n.key()].wrap(impl, data[n.key()]));
-            };
         return n2;
     });
     var edges2 = graph.edges().map(function(e) {
@@ -113,6 +95,75 @@ metagraph.pattern = function(spec) {
         };
     });
     return mg.graph(nodes2, edges2);
+};
+
+metagraph.input = function(name) {
+    return {
+        data: function(node) {
+            name = name || node.key();
+            return function(defn, impl) {
+                return impl.source_data[name];
+            };
+        }
+    };
+};
+metagraph.map = function() {
+    return {
+        data: function(edge) {
+            return function(defn, impl, data) {
+                return build_map(data,
+                                   edge.target().value().keyFunction,
+                                   defn.node[edge.target().key()].wrap.bind(null, impl));
+            };
+        }
+    };
+};
+metagraph.singleton = function() {
+    return {
+    };
+};
+metagraph.list = function() {
+    return {
+    };
+};
+metagraph.map_of_lists = function() {
+    return {
+    };
+};
+metagraph.createable = function() {
+    return {
+        members: {
+            create: function(data) {
+                var impl = {
+                    indices: {},
+                    objects: {},
+                    source_data: data
+                };
+                return (impl.objects[n.key()] = defn.node[n.key()].wrap(impl, data[n.key()]));
+            }
+        }
+    };
+};
+metagraph.call = function(f) {
+    return function(impl, val) {
+        return function() {
+            return f(val);
+        };
+    };
+};
+metagraph.key = function(keyf) {
+    return {
+        members: {
+            key: mg.call(keyf)
+        }
+    };
+};
+metagraph.value = function(valuef) {
+    return {
+        members: {
+            key: mg.call(valuef)
+        }
+    };
 };
 
 metagraph.basic_type = function() {
@@ -148,18 +199,11 @@ metagraph.reference = function(role) {
 
 metagraph.lookup = function() {
     return {
-        data: function(edge) {
-            return function(defn, impl, data) {
-                return build_index(data,
-                                   edge.target().value().keyFunction,
-                                   defn.node[edge.target().key()].wrap.bind(null, impl));
-            };
-        },
         funfun: function(edge) {
             return function(defn, impl, val) {
-                return function(index) {
+                return function(map) {
                     return function(key) {
-                        return index[key];
+                        return map[key];
                     };
                 };
             };
@@ -180,9 +224,9 @@ metagraph.one = function() {
 metagraph.list = function() {
     return {
         data: function(edge) {
-            return function(defn, impl, data, index) {
+            return function(defn, impl, data, map) {
                 return data.map(function(val) {
-                    return index[edge.target().value().keyFunction(val)];
+                    return map[edge.target().value().keyFunction(val)];
                 });
             };
         },
@@ -201,9 +245,9 @@ metagraph.lookupFrom = function(access) {
     return {
         funfun: function(edge) {
             return function(defn, impl, val) {
-                return function(index) {
+                return function(map) {
                     return function() {
-                        return index[access(val)];
+                        return map[access(val)];
                     };
                 };
             };
@@ -213,20 +257,20 @@ metagraph.lookupFrom = function(access) {
 metagraph.listFrom = function(access) {
     return {
         data: function(edge) {
-            return function(defn, impl, data, index) {
+            return function(defn, impl, data, map) {
                 return data.reduce(function(o, v) {
                     var key = access(v);
                     var list = o[key] = o[key] || [];
-                    list.push(index[edge.target().value().keyFunction(v)]);
+                    list.push(map[edge.target().value().keyFunction(v)]);
                     return o;
                 }, {});
             };
         },
         funfun: function(edge) {
             return function(defn, impl, val) {
-                return function(index) {
+                return function(map) {
                     return function() {
-                        return index[edge.source().value().keyFunction(val)] || [];
+                        return map[edge.source().value().keyFunction(val)] || [];
                     };
                 };
             };
