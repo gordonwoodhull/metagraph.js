@@ -51,13 +51,13 @@ describe('dataflow', function() {
         describe('with 1,2,3', function() {
             var inst = {a: 1, b: 2, c: 3};
             it('results in 3', function() {
-                expect(arithflow.create(inst).calc('b*c/(a+a)')).toBe(3);
+                expect(arithflow.instantiate(inst).calc('b*c/(a+a)')).toBe(3);
             });
         });
         describe('with 2,4,17', function() {
             var inst = {a: 2, b: 4, c: 17};
             it('results in 17', function() {
-                expect(arithflow.create(inst).calc('b*c/(a+a)')).toBe(17);
+                expect(arithflow.instantiate(inst).calc('b*c/(a+a)')).toBe(17);
             });
         });
     });

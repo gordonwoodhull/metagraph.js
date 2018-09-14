@@ -154,7 +154,7 @@ metagraph.createable = function() {
                 return function(defn) {
                     return function(data) {
                         var impl = {
-                            flow: flow.create({}),
+                            flow: flow.instantiate({}),
                             source_data: data
                         };
                         return (impl.objects[node.key()] = defn.node[node.key()].wrap(impl, data[node.key()]));

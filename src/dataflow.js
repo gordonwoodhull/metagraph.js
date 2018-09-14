@@ -1,7 +1,7 @@
 metagraph.dataflow = function(spec, options) {
     var flowgraph = mg.graph(spec.nodes, spec.edges, options);
     var _flow = {
-        create: function(instance) {
+        instantiate: function(instance) {
             var _inst = {
                 calc: function(id) {
                     if(!instance[id]) {
