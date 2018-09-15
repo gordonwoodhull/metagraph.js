@@ -3,8 +3,12 @@ var metagraph = {
 };
 var mg = metagraph;
 
-function object_to_keyvalue(o) {
-    return Object.keys(o).map(function(key) {
+function as_array(a) {
+    return Array.isArray(a) ? a : [a];
+}
+
+function as_keyvalue(o) {
+    return Array.isArray(o) ? o : Object.keys(o).map(function(key) {
         return {key: key, value: o[key]};
     });
 }

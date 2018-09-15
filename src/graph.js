@@ -1,16 +1,17 @@
-metagraph.graph = function(nodes, edges, options) {
-    if(!Array.isArray(nodes))
-        nodes = object_to_keyvalue(nodes);
-    if(!Array.isArray(edges))
-        edges = object_to_keyvalue(edges);
-    options = Object.assign({
+function graph_options(opts) {
+    return Object.assign({
         nodeKey: function(kv) { return kv.key; },
         edgeKey: function(kv) { return kv.key; },
         nodeValue: function(kv) { return kv.value; },
         edgeValue: function(kv) { return kv.value; },
         edgeSource: function(kv) { return kv.value.source; },
         edgeTarget: function(kv) { return kv.value.target; }
-    }, options || {});
+    }, opts || {});
+}
+metagraph.graph = function(nodes, edges, opts) {
+    nodes = as_keyvalue(nodes);
+    edges = as_keyvalue(edges);
+    var options = graph_options(opts);
 
     var _nodeMap, _edgeMap, _nodesList, _edgesList, _outsList, _insList;
 
@@ -115,3 +116,46 @@ metagraph.graph = function(nodes, edges, options) {
     return _graph;
 };
 
+metagraph.graph_adjacency = metagraph.graph;
+function incidence_options(opts) {
+    var gropts = graph_options(opts);
+    return Object.assign({
+        nodeIncidences: n => n && (n.edges || n.ins || n.outs) || [],
+        incidencesOutward: n => {
+            var v = gropts.nodeValue(n);
+            return !v /* doesn't matter */ || !!(v.edges || v.outs);
+        }
+    }, gropts);
+}
+metagraph.graph_incidence = function(nodes, opts) {
+    nodes = as_keyvalue(nodes);
+    var options = incidence_options(opts);
+    var edges = [];
+    function edge_value(outward, nk, ik) {
+        return outward ? {
+            source: nk,
+            target: ik
+        } : {
+            source: ik,
+            target: nk
+        };
+    }
+    nodes.forEach(function(n) {
+        var nk = options.nodeKey(n),
+            outward = options.incidencesOutward(n);
+        as_array(options.nodeIncidences(options.nodeValue(n)))
+            .forEach(function(ik) {
+                edges.push({
+                    key: nk + '-' + ik,
+                    value: edge_value(outward, nk, ik)
+                });
+            });
+    });
+    return mg.graph_adjacency(nodes, edges, opts);
+};
+metagraph.graph_detect = function(spec, opts) {
+    if(spec.incidences)
+        return mg.graph_incidence(spec.incidences, opts);
+    else if(spec.nodes)
+        return mg.graph_adjacency(spec.nodes, spec.edges, opts);
+};
