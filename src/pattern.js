@@ -14,9 +14,10 @@
  * order not to pollute the signature.
  **/
 metagraph.pattern = function(spec) {
-    var graph = mg.graph(spec.nodes, spec.edges);
+    var flow = mg.graph_detect(spec.dataflow),
+        pattern = mg.graph_detect(spec.pattern);
     var defn = {node: {}, edge: {}, indices: {}};
-    graph.nodes().forEach(function(node) {
+    pattern.nodes().forEach(function(node) {
         defn.node[node.key()] = {
             members: {}
         };
@@ -32,7 +33,7 @@ metagraph.pattern = function(spec) {
         };
     }
 
-    graph.edges().forEach(function(edge) {
+    pattern.edges().forEach(function(edge) {
         var ekey = edge.key(), evalue = edge.value();
         var action = evalue.member || evalue.flow;
         if(action.data) {
@@ -68,7 +69,7 @@ metagraph.pattern = function(spec) {
                 return defn.indices[ekey];
             };
     });
-    graph.nodes().forEach(function(node) {
+    pattern.nodes().forEach(function(node) {
         var nkey = node.key(), nvalue = node.value();
         if(nvalue.data)
             defn.indices['node.' + nkey] = nvalue.data(node);
@@ -81,11 +82,11 @@ metagraph.pattern = function(spec) {
         };
     });
 
-    var nodes2 = graph.nodes().map(function(n) {
+    var nodes2 = pattern.nodes().map(function(n) {
         var n2 = {key: n.key(), value: {}};
         return n2;
     });
-    var edges2 = graph.edges().map(function(e) {
+    var edges2 = pattern.edges().map(function(e) {
         var e2 = {
             key: e.key(),
             value: {
@@ -97,10 +98,11 @@ metagraph.pattern = function(spec) {
     return mg.graph(nodes2, edges2);
 };
 
+// dataflow nodes
 metagraph.input = function(name) {
     return {
-        data: function(node) {
-            name = name || node.key();
+        data: function(fnode) {
+            name = name || fnode.key();
             return function(defn, impl) {
                 return impl.source_data[name];
             };
@@ -109,7 +111,7 @@ metagraph.input = function(name) {
 };
 metagraph.map = function() {
     return {
-        data: function(edge) {
+        data: function(fnode) {
             return function(defn, impl, data) {
                 return build_map(data,
                                    edge.target().value().keyFunction,
@@ -124,7 +126,7 @@ metagraph.singleton = function() {
 };
 metagraph.list = function() {
     return {
-        data: function(edge) {
+        data: function(fnode) {
             return function(defn, impl, data, map) {
                 return data.map(function(val) {
                     return map[edge.target().value().keyFunction(val)];
@@ -135,7 +137,7 @@ metagraph.list = function() {
 };
 metagraph.map_of_lists = function() {
     return {
-        data: function(edge) {
+        data: function(fnode) {
             return function(defn, impl, data, map) {
                 return data.reduce(function(o, v) {
                     var key = access(v);
@@ -147,6 +149,20 @@ metagraph.map_of_lists = function() {
         }
     };
 };
+metagraph.select = function() {
+    return {
+        data: function(edge) {
+            return function(defn, impl, items, keys) {
+                var set = d3.set(keys);
+                return items.filter(function(r) {
+                    return set.has(edge.source().value().keyFunction(r));
+                });
+            };
+        }
+    };
+};
+
+// pattern nodes
 metagraph.createable = function() {
     return {
         class_members: {
@@ -178,6 +194,7 @@ metagraph.call = function(methodname) {
 metagraph.key = mg.call('key');
 metagraph.value = mg.call('value');
 
+// pattern edges
 metagraph.basic_type = function() {
     return {
         single: false
@@ -268,18 +285,6 @@ metagraph.listFrom = function(access) {
                         return map[edge.source().value().keyFunction(val)] || [];
                     };
                 };
-            };
-        }
-    };
-};
-metagraph.select = function() {
-    return {
-        data: function(edge) {
-            return function(defn, impl, items, keys) {
-                var set = d3.set(keys);
-                return items.filter(function(r) {
-                    return set.has(edge.source().value().keyFunction(r));
-                });
             };
         }
     };

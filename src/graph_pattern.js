@@ -14,29 +14,31 @@ metagraph.graph_pattern = function(options) {
                 nodes: {node: mg.input()},
                 edges: {node: mg.input()},
                 node_by_key: {
-                    node: mg.map(options.nodeKey),
-                    edges: 'nodes'
+                    node: mg.map(),
+                    refs: 'Node',
+                    ins: 'nodes'
                 },
                 edge_by_key: {
-                    node: mg.map(options.edgeKey),
-                    edges: 'edges'
+                    node: mg.map(),
+                    refs: 'Edge',
+                    ins: 'edges'
                 },
                 graph: mg.singleton(),
                 node_list: {
                     node: mg.list(),
-                    edges: ['nodes', 'node_by_key']
+                    ins: ['nodes', 'node_by_key']
                 },
                 node_list: {
                     node: mg.list(),
-                    edges: ['edges', 'edge_by_key']
+                    ins: ['edges', 'edge_by_key']
                 },
                 node_outs: {
                     node: mg.map_of_lists(),
-                    edges: ['edges', 'edge_by_key']
+                    ins: ['edges', 'edge_by_key']
                 },
                 node_ins: {
                     node: mg.map_of_lists(),
-                    edges: ['edges', 'edge_by_key']
+                    ins: ['edges', 'edge_by_key']
                 }
             }
         },
