@@ -140,13 +140,16 @@ metagraph.graph_incidence = function(nodes, opts) {
             target: nk
         };
     }
+    function edge_key(outward, nk, ik) {
+        return outward ? nk + '-' + ik : ik + '-' + nk;
+    }
     nodes.forEach(function(n) {
         var nk = options.nodeKey(n),
             outward = options.incidencesOutward(n);
         as_array(options.nodeIncidences(options.nodeValue(n)))
             .forEach(function(ik) {
                 edges.push({
-                    key: nk + '-' + ik,
+                    key: edge_key(outward, nk, ik),
                     value: edge_value(outward, nk, ik)
                 });
             });
