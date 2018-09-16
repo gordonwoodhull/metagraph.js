@@ -98,10 +98,14 @@ metagraph.pattern = function(spec) {
     return mg.graph(nodes2, edges2);
 };
 
+function resolve_node_refs(pattern, refs) {
+    return as_array(refs).map(nk => pattern.node(nk));
+}
+
 // dataflow nodes
 metagraph.input = function(name) {
     return {
-        data: function(fnode) {
+        data: function(pattern, fnode) {
             name = name || fnode.key();
             return function(defn, impl) {
                 return impl.source_data[name];
@@ -111,7 +115,8 @@ metagraph.input = function(name) {
 };
 metagraph.map = function() {
     return {
-        data: function(fnode) {
+        data: function(pattern, fnode) {
+            var [pnode] = resolve_node_refs(pattern, fnode.value().refs);
             return function(defn, impl, data) {
                 return build_map(data,
                                    edge.target().value().keyFunction,
