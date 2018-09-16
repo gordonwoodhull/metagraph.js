@@ -8,7 +8,7 @@ function as_array(a) {
 }
 
 function as_keyvalue(o) {
-    return !o && [] || (!Array.isArray(o) ? o : Object.keys(o).map(function(key) {
+    return !o && [] || (Array.isArray(o) ? o : Object.keys(o).map(function(key) {
         return {key: key, value: o[key]};
     }));
 }

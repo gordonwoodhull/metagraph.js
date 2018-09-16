@@ -7,14 +7,13 @@ describe('graph_pattern', function() {
     describe('adcdefg', function() {
         beforeEach(function() {
             graph = metagraph.pattern(metagraph.graph_pattern()).node('Graph').value().create({
-                Graph: {},
-                Node: [
+                nodes: [
                     {key: 'a'},
                     {key: 'b'},
                     {key: 'c', value: {n: 17}},
                     {key: 'd'}
                 ],
-                Edge: [
+                edges: [
                     {key: 'e', value: {source: 'a', target: 'b'}},
                     {key: 'f', value: {source: 'a', target: 'c', n: 42}},
                     {key: 'g', value: {source: 'c', target: 'd'}}
@@ -68,25 +67,23 @@ describe('graph_pattern', function() {
         beforeEach(function() {
             pattern = metagraph.pattern(metagraph.graph_pattern());
             graph1 = pattern.node('Graph').value().create({
-                Graph: {},
-                Node: [
+                nodes: [
                     {key: 'a'},
                     {key: 'b'},
                     {key: 'c', value: {n: 17}}
                 ],
-                Edge: [
+                edges: [
                     {key: 'e', value: {source: 'a', target: 'b'}},
                     {key: 'f', value: {source: 'b', target: 'c', n: 42}}
                 ]
             });
             graph2 = pattern.node('Graph').value().create({
-                Graph: {},
-                Node: [
+                nodes: [
                     {key: 'A'},
                     {key: 'B'},
                     {key: 'C', value: {n: -17}}
                 ],
-                Edge: [
+                edges: [
                     {key: 'E', value: {source: 'A', target: 'B'}},
                     {key: 'F', value: {source: 'B', target: 'C', n: -42}}
                 ]
@@ -161,14 +158,13 @@ describe('graph_pattern', function() {
             spyOn(accessors, 'edgeSource').and.callThrough();
             spyOn(accessors, 'edgeTarget').and.callThrough();
             graph = metagraph.pattern(metagraph.graph_pattern(accessors)).node('Graph').value().create({
-                Graph: {},
-                Node: [
+                nodes: [
                     {key: 'a'},
                     {key: 'b'},
                     {key: 'c', value: {n: 17}},
                     {key: 'd'}
                 ],
-                Edge: [
+                edges: [
                     {key: 'e', value: {source: 'a', target: 'b'}},
                     {key: 'f', value: {source: 'a', target: 'c', n: 42}},
                     {key: 'g', value: {source: 'c', target: 'd'}}

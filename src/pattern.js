@@ -41,7 +41,7 @@ metagraph.pattern = function(spec) {
             var funfun = action.funfun(edge);
             var deps = as_array(evalue.deps);
             funfun = deps.length ? resolve(deps, funfun) : funfun;
-            defn.node[edge.source().key()].members[evalue.name] = funfun;
+            defn.node[edge.source().key()].members[evalue.name] = {defn: funfun};
         }
         // if(evalue.flow)
         //     edge.target().value().data = function(node) {
@@ -76,7 +76,7 @@ metagraph.pattern = function(spec) {
     var nodes2 = pattern.nodes().map(function(n) {
         var n2 = {key: n.key(), value: {}}, class_members = defn.node[n.key()].class_members;
         Object.keys(class_members).forEach(function(name) {
-            n2.value[name] = class_members[name].defn;
+            n2.value[name] = class_members[name].defn(defn);
         });
         return n2;
     });
@@ -173,13 +173,16 @@ metagraph.select = function() {
 function realize_dataflow(flowspec, pattern, defn, impl) {
     var flownodes = flowspec.nodes().map(function(fsn) {
         return {
-            key: fsn.key,
+            key: fsn.key(),
             value: {
                 calc: fsn.value().node.data(pattern, fsn).bind(null, defn, impl)
             }
         };
     });
-    return mg.graph(flownodes, flowspec.edges());
+    return mg.dataflow({
+        nodes: flownodes,
+        edges: flowspec.edges().map(e => ({key: e.key(), value: e.value()}))
+    });
 }
 metagraph.createable = function(flowkey) {
     return function(flowspec, pnode) {
@@ -211,7 +214,7 @@ metagraph.call = function(methodname) {
                     key: methodname,
                     value: {
                         accessor: f,
-                        defn: function(impl, val) {
+                        defn: function(defn, impl, val) {
                             return function() {
                                 return f(val);
                             };
@@ -226,13 +229,25 @@ metagraph.key = mg.call('key');
 metagraph.value = mg.call('value');
 
 // pattern edges
-metagraph.reference = function(role) {
+// metagraph.reference = function(role) {
+//     return {
+//         single: role.value().single,
+//         reference: role
+//     };
+// };
+metagraph.fetch = function() {
     return {
-        single: role.value().single,
-        reference: role
+        funfun: function(edge) {
+            return function(defn, impl) {
+                return function(x) {
+                    return function() {
+                        return x;
+                    };
+                };
+            };
+        }
     };
 };
-
 metagraph.lookup = function() {
     return {
         funfun: function(edge) {
@@ -246,31 +261,7 @@ metagraph.lookup = function() {
         }
     };
 };
-metagraph.one = function() {
-    return {
-        funfun: function(edge) {
-            return function(defn, impl, val) {
-                return function() {
-                    return impl.objects[edge.target().key()];
-                };
-            };
-        }
-    };
-};
-metagraph.list = function() {
-    return {
-        funfun: function(edge) {
-            return function(defn, impl, val) {
-                return function(list) {
-                    return function() {
-                        return list;
-                    };
-                };
-            };
-        }
-    };
-};
-metagraph.lookupFrom = function(access) {
+metagraph.lookupField = function(access) {
     return {
         funfun: function(edge) {
             return function(defn, impl, val) {
@@ -283,13 +274,13 @@ metagraph.lookupFrom = function(access) {
         }
     };
 };
-metagraph.listFrom = function(access) {
+metagraph.lookupSource = function() {
     return {
         funfun: function(edge) {
             return function(defn, impl, val) {
                 return function(map) {
                     return function() {
-                        return map[edge.source().value().keyFunction(val)] || [];
+                        return map[defn[edge.source().key()].members.key.accessor(val)] || [];
                     };
                 };
             };

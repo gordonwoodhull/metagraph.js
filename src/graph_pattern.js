@@ -61,13 +61,13 @@ metagraph.graph_pattern = function(options) {
                     name: 'graph',
                     source: 'Node', target: 'Graph',
                     deps: 'graph',
-                    member: mg.one()
+                    member: mg.fetch()
                 },
                 graph_nodes: {
                     name: 'nodes',
                     source: 'Graph', target: 'Node',
                     deps: 'node_list',
-                    member: mg.list()
+                    member: mg.fetch()
                 },
                 graph_edge: {
                     name: 'edge',
@@ -79,37 +79,37 @@ metagraph.graph_pattern = function(options) {
                     name: 'graph',
                     source: 'Edge', target: 'Graph',
                     deps: 'graph',
-                    member: mg.one()
+                    member: mg.fetch()
                 },
                 graph_edges: {
                     name: 'edges',
                     source: 'Graph', target: 'Edge',
                     deps: 'edge_list',
-                    member: mg.list()
+                    member: mg.fetch()
                 },
                 edge_source: {
                     name: 'source',
                     source: 'Edge', target: 'Node',
                     deps: 'node_by_key',
-                    member: mg.lookupFrom(options.edgeSource)
-                },
-                node_outs: {
-                    name: 'outs',
-                    source: 'Node', target: 'Edge',
-                    deps: 'node_outs',
-                    member: mg.listFrom()
+                    member: mg.lookupField(options.edgeSource)
                 },
                 edge_target: {
                     name: 'target',
                     source: 'Edge', target: 'Node',
                     deps: 'node_by_key',
-                    member: mg.lookupFrom(options.edgeTarget)
+                    member: mg.lookupField(options.edgeTarget)
+                },
+                node_outs: {
+                    name: 'outs',
+                    source: 'Node', target: 'Edge',
+                    deps: 'node_outs',
+                    member: mg.lookupSource()
                 },
                 node_ins: {
                     name: 'ins',
                     source: 'Node', target: 'Edge',
                     deps: 'node_ins',
-                    member: mg.listFrom()
+                    member: mg.lookupSource()
                 }
             }
         }
