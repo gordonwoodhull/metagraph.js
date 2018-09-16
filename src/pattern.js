@@ -14,12 +14,14 @@
  * order not to pollute the signature.
  **/
 metagraph.pattern = function(spec) {
-    var flow = mg.graph_detect(spec.dataflow),
+    var flowspec = mg.graph_detect(spec.dataflow),
         pattern = mg.graph_detect(spec.pattern);
     var defn = {node: {}, edge: {}, indices: {}};
+
     pattern.nodes().forEach(function(node) {
         defn.node[node.key()] = {
-            members: {}
+            members: {},
+            class_members: {}
         };
     });
     function resolve(deps, funfun) {
@@ -27,63 +29,55 @@ metagraph.pattern = function(spec) {
             var action = funfun(defn, impl, val);
             return function() {
                 return action.apply(null, deps.map(function(dep) {
-                    return defn.indices[dep](defn, impl);
+                    return impl.flow.calc(dep);
                 })).apply(null, arguments);
             };
         };
     }
-
     pattern.edges().forEach(function(edge) {
         var ekey = edge.key(), evalue = edge.value();
-        var action = evalue.member || evalue.flow;
-        if(action.data) {
-            var buind = evalue.member.data(edge);
-            defn.indices[ekey] = function(defn, impl) {
-                if(!impl.indices[ekey]) {
-                    var args = [defn, impl], index;
-                    if(evalue.deps) {
-                        var deps = Array.isArray(evalue.deps) ? evalue.deps : [evalue.deps];
-                        args = args.concat(deps.map(function(dep) {
-                            return defn.indices[dep](defn, impl);
-                        }));
-                        index = buind.apply(null, args);
-                    }
-                    else index = buind(defn, impl);
-                    impl.indices[ekey] = index;
-                }
-                return impl.indices[ekey];
-            };
-        }
-        if(evalue.member && evalue.member.funfun) {
-            var funfun = evalue.member.funfun(edge);
-            var deps;
-            if(evalue.member.data)
-                deps = [ekey];
-            else if(evalue.deps)
-                deps = Array.isArray(evalue.deps) ? evalue.deps : [evalue.deps];
-            funfun = deps ? resolve(deps, funfun) : funfun;
+        var action = evalue.member;
+        if(action && action.funfun) {
+            var funfun = action.funfun(edge);
+            var deps = as_array(evalue.deps);
+            funfun = deps.length ? resolve(deps, funfun) : funfun;
             defn.node[edge.source().key()].members[evalue.name] = funfun;
         }
-        if(evalue.flow)
-            edge.target().value().data = function(node) {
-                return defn.indices[ekey];
-            };
+        // if(evalue.flow)
+        //     edge.target().value().data = function(node) {
+        //         return defn.indices[ekey];
+        //     };
     });
     pattern.nodes().forEach(function(node) {
         var nkey = node.key(), nvalue = node.value();
         if(nvalue.data)
             defn.indices['node.' + nkey] = nvalue.data(node);
+        as_array(node.value()).forEach(function(spec) {
+            var nodedef = spec(flowspec, node);
+            as_keyvalue(nodedef.class_members).forEach(function(cmemspec) {
+                defn.node[nkey].class_members[cmemspec.key] = cmemspec.value;
+            });
+            as_keyvalue(nodedef.members).forEach(function(memspec) {
+                defn.node[nkey].members[memspec.key] = {
+                    accessor: memspec.value.accessor,
+                    defn: memspec.value.defn
+                };
+            });
+        });
         defn.node[nkey].wrap = function(impl, val) {
-            var wrapper = {};
-            Object.keys(defn.node[nkey].members).forEach(function(member) {
-                wrapper[member] = defn.node[nkey].members[member](defn, impl, val);
+            var wrapper = {}, members = defn.node[nkey].members;
+            Object.keys(members).forEach(function(name) {
+                wrapper[name] = members[name].defn(defn, impl, val);
             });
             return wrapper;
         };
     });
 
     var nodes2 = pattern.nodes().map(function(n) {
-        var n2 = {key: n.key(), value: {}};
+        var n2 = {key: n.key(), value: {}}, class_members = defn.node[n.key()].class_members;
+        Object.keys(class_members).forEach(function(name) {
+            n2.value[name] = class_members[name].defn;
+        });
         return n2;
     });
     var edges2 = pattern.edges().map(function(e) {
@@ -119,35 +113,42 @@ metagraph.map = function() {
             var [pnode] = resolve_node_refs(pattern, fnode.value().refs);
             return function(defn, impl, data) {
                 return build_map(data,
-                                   edge.target().value().keyFunction,
-                                   defn.node[edge.target().key()].wrap.bind(null, impl));
+                                 defn.node[pnode.key()].members.key.accessor,
+                                 defn.node[pnode.key()].wrap.bind(null, impl));
             };
         }
     };
 };
 metagraph.singleton = function() {
     return {
+        data: function(pattern, fnode) {
+            return function(defn, impl) {
+                throw new Error('singleton not initialized');
+            };
+        }
     };
 };
 metagraph.list = function() {
     return {
-        data: function(fnode) {
+        data: function(pattern, fnode) {
+            var [pnode] = resolve_node_refs(pattern, fnode.value().refs);
             return function(defn, impl, data, map) {
                 return data.map(function(val) {
-                    return map[edge.target().value().keyFunction(val)];
+                    return map[defn.node[pnode.key()].members.key.accessor(val)];
                 });
             };
         }
     };
 };
-metagraph.map_of_lists = function() {
+metagraph.map_of_lists = function(accessor) {
     return {
-        data: function(fnode) {
+        data: function(pattern, fnode) {
             return function(defn, impl, data, map) {
+                var [pnode] = resolve_node_refs(pattern, fnode.value().refs);
                 return data.reduce(function(o, v) {
-                    var key = access(v);
+                    var key = accessor(v);
                     var list = o[key] = o[key] || [];
-                    list.push(map[edge.target().value().keyFunction(v)]);
+                    list.push(map[defn.node[pnode.key()].members.key.accessor(v)]);
                     return o;
                 }, {});
             };
@@ -156,11 +157,12 @@ metagraph.map_of_lists = function() {
 };
 metagraph.select = function() {
     return {
-        data: function(edge) {
+        data: function(pattern, fnode) {
+            var [pnode] = resolve_node_refs(pattern, fnode.value().refs);
             return function(defn, impl, items, keys) {
                 var set = d3.set(keys);
                 return items.filter(function(r) {
-                    return set.has(edge.source().value().keyFunction(r));
+                    return set.has(defn.node[pnode.key()].members.key.accessor(r));
                 });
             };
         }
@@ -168,31 +170,55 @@ metagraph.select = function() {
 };
 
 // pattern nodes
-metagraph.createable = function() {
-    return {
-        class_members: {
-            create: function(flow, node) {
-                return function(defn) {
-                    return function(data) {
-                        var impl = {
-                            flow: flow.instantiate({}),
-                            source_data: data
-                        };
-                        return (impl.objects[node.key()] = defn.node[node.key()].wrap(impl, data[node.key()]));
-                    };
-                };
+function realize_dataflow(flowspec, pattern, defn, impl) {
+    var flownodes = flowspec.nodes().map(function(fsn) {
+        return {
+            key: fsn.key,
+            value: {
+                calc: fsn.value().node.data(pattern, fsn).bind(null, defn, impl)
             }
-        }
+        };
+    });
+    return mg.graph(flownodes, flowspec.edges());
+}
+metagraph.createable = function(flowkey) {
+    return function(flowspec, pnode) {
+        return {
+            class_members: {
+                create: {
+                    defn: function(defn) {
+                        return function(data) {
+                            var impl = {
+                                source_data: data
+                            };
+                            var flow = realize_dataflow(flowspec, pnode.graph(), defn, impl);
+                            var env = {};
+                            env[flowkey] = defn.node[pnode.key()].wrap(impl, data[pnode.key()]);
+                            impl.flow = flow.instantiate(env);
+                            return env[flowkey];
+                        };
+                    }
+                }
+            }
+        };
     };
 };
 metagraph.call = function(methodname) {
     return function(f) {
-        return function(impl, val) {
-            var spec = {members: {}};
-            spec.members[methodname] = function() {
-                return f(val);
+        return function(flowspec, pnode) {
+            return {
+                members: [{
+                    key: methodname,
+                    value: {
+                        accessor: f,
+                        defn: function(impl, val) {
+                            return function() {
+                                return f(val);
+                            };
+                        }
+                    }
+                }]
             };
-            return spec;
         };
     };
 };
@@ -200,30 +226,6 @@ metagraph.key = mg.call('key');
 metagraph.value = mg.call('value');
 
 // pattern edges
-metagraph.basic_type = function() {
-    return {
-        single: false
-    };
-};
-metagraph.single_type = function() {
-    return Object.assign(mg.basic_type(), {
-        single: true,
-        valueFunction: function(val) {
-            return val;
-        }
-    });
-};
-metagraph.table_type = function(keyf, valuef) {
-    return Object.assign(mg.basic_type(), {
-        keyFunction: keyf,
-        valueFunction: valuef,
-        data: function(node) {
-            return function(defn, impl) {
-                return impl.source_data[node.key()];
-            };
-        }
-    });
-};
 metagraph.reference = function(role) {
     return {
         single: role.value().single,

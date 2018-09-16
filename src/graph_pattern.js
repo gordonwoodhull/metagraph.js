@@ -23,28 +23,30 @@ metagraph.graph_pattern = function(options) {
                     refs: 'Edge',
                     ins: 'edges'
                 },
-                graph: mg.singleton(),
+                graph: {node: mg.singleton()},
                 node_list: {
                     node: mg.list(),
+                    refs: 'Node',
                     ins: ['nodes', 'node_by_key']
                 },
-                node_list: {
+                edge_list: {
                     node: mg.list(),
+                    refs: 'Edge',
                     ins: ['edges', 'edge_by_key']
                 },
                 node_outs: {
-                    node: mg.map_of_lists(),
+                    node: mg.map_of_lists(options.edgeSource),
                     ins: ['edges', 'edge_by_key']
                 },
                 node_ins: {
-                    node: mg.map_of_lists(),
-                    ins: ['edges', 'edge_by_key']
+                    node: mg.map_of_lists(options.edgeTarget),
+                    edges: ['edges', 'edge_by_key']
                 }
             }
         },
         pattern: {
             nodes: {
-                Graph: mg.createable(),
+                Graph: mg.createable('graph'),
                 Node: [mg.key(options.nodeKey), mg.value(options.nodeValue)],
                 Edge: [mg.key(options.edgeKey), mg.value(options.edgeValue)]
             },
@@ -95,7 +97,7 @@ metagraph.graph_pattern = function(options) {
                     name: 'outs',
                     source: 'Node', target: 'Edge',
                     deps: 'node_outs',
-                    member: mg.listFrom(options.edgeSource)
+                    member: mg.listFrom()
                 },
                 edge_target: {
                     name: 'target',
@@ -107,7 +109,7 @@ metagraph.graph_pattern = function(options) {
                     name: 'ins',
                     source: 'Node', target: 'Edge',
                     deps: 'node_ins',
-                    member: mg.listFrom(options.edgeTarget)
+                    member: mg.listFrom()
                 }
             }
         }
