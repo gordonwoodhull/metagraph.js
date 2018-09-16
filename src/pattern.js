@@ -16,7 +16,7 @@
 metagraph.pattern = function(spec) {
     var flowspec = mg.graph_detect(spec.dataflow),
         pattern = mg.graph_detect(spec.pattern);
-    var defn = {node: {}, edge: {}, indices: {}};
+    var defn = {node: {}, edge: {}};
 
     pattern.nodes().forEach(function(node) {
         defn.node[node.key()] = {
@@ -43,10 +43,6 @@ metagraph.pattern = function(spec) {
             funfun = deps.length ? resolve(deps, funfun) : funfun;
             defn.node[edge.source().key()].members[evalue.name] = {defn: funfun};
         }
-        // if(evalue.flow)
-        //     edge.target().value().data = function(node) {
-        //         return defn.indices[ekey];
-        //     };
     });
     pattern.nodes().forEach(function(node) {
         var nkey = node.key(), nvalue = node.value();
@@ -280,7 +276,7 @@ metagraph.lookupSource = function() {
             return function(defn, impl, val) {
                 return function(map) {
                     return function() {
-                        return map[defn[edge.source().key()].members.key.accessor(val)] || [];
+                        return map[defn.node[edge.source().key()].members.key.accessor(val)] || [];
                     };
                 };
             };

@@ -21,14 +21,13 @@ describe('graph_pattern', function() {
     describe('adcdefg', function() {
         beforeEach(function() {
             graph = metagraph.pattern(metagraph.graph_pattern()).node('Graph').value().create({
-                Graph: {},
-                Node: [
+                nodes: [
                     {key: 'a'},
                     {key: 'b'},
                     {key: 'c'},
                     {key: 'd'}
                 ],
-                Edge: [
+                edges: [
                     {key: 'e', value: {source: 'a', target: 'b'}},
                     {key: 'f', value: {source: 'a', target: 'c', n: 42}},
                     {key: 'g', value: {source: 'c', target: 'd'}}
@@ -46,14 +45,13 @@ describe('graph_pattern', function() {
     describe('gfedcba', function() {
         beforeEach(function() {
             graph = metagraph.pattern(metagraph.graph_pattern()).node('Graph').value().create({
-                Graph: {},
-                Node: [
+                nodes: [
                     {key: 'a'},
                     {key: 'b'},
                     {key: 'c'},
                     {key: 'd'}
                 ],
-                Edge: [
+                edges: [
                     {key: 'e', value: {source: 'b', target: 'a'}},
                     {key: 'f', value: {source: 'c', target: 'a'}},
                     {key: 'g', value: {source: 'd', target: 'c'}}
@@ -71,8 +69,7 @@ describe('graph_pattern', function() {
     describe('binary tree', function() {
         beforeEach(function() {
             graph = metagraph.pattern(metagraph.graph_pattern()).node('Graph').value().create({
-                Graph: {},
-                Node: [
+                nodes: [
                     {key: 0},
                     {key: 1},
                     {key: 2},
@@ -81,7 +78,7 @@ describe('graph_pattern', function() {
                     {key: 5},
                     {key: 6}
                 ],
-                Edge: [
+                edges: [
                     {key: 0, value: {source: 1, target: 0}},
                     {key: 1, value: {source: 1, target: 2}},
                     {key: 2, value: {source: 3, target: 2}},

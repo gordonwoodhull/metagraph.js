@@ -36,11 +36,13 @@ metagraph.graph_pattern = function(options) {
                 },
                 node_outs: {
                     node: mg.map_of_lists(options.edgeSource),
+                    refs: 'Node',
                     ins: ['edges', 'edge_by_key']
                 },
                 node_ins: {
                     node: mg.map_of_lists(options.edgeTarget),
-                    edges: ['edges', 'edge_by_key']
+                    refs: 'Node',
+                    ins: ['edges', 'edge_by_key']
                 }
             }
         },

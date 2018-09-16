@@ -4,7 +4,7 @@ var metagraph = {
 var mg = metagraph;
 
 function as_array(a) {
-    return !a && [] || Array.isArray(a) ? a : [a];
+    return !a && [] || (Array.isArray(a) ? a : [a]);
 }
 
 function as_keyvalue(o) {
