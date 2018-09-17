@@ -151,7 +151,7 @@ metagraph.map_of_lists = function(accessor) {
         }
     };
 };
-metagraph.select = function() {
+metagraph.subset = function() {
     return {
         data: function(pattern, fnode) {
             var [pnode] = resolve_node_refs(pattern, fnode.value().refs);
