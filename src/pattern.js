@@ -88,10 +88,6 @@ metagraph.pattern = function(spec) {
     return mg.graph(nodes2, edges2);
 };
 
-function resolve_node_refs(pattern, refs) {
-    return as_array(refs).map(nk => pattern.node(nk));
-}
-
 // dataflow nodes
 metagraph.input = function(name) {
     return {
@@ -106,11 +102,11 @@ metagraph.input = function(name) {
 metagraph.map = function() {
     return {
         data: function(pattern, fnode) {
-            var [pnode] = resolve_node_refs(pattern, fnode.value().refs);
+            var patref = as_array(fnode.value().refs)[0];
             return function(defn, impl, data) {
                 return build_map(data,
-                                 defn.node[pnode.key()].members.key.accessor,
-                                 defn.node[pnode.key()].wrap.bind(null, impl));
+                                 defn.node[patref].members.key.accessor,
+                                 defn.node[patref].wrap.bind(null, impl));
             };
         }
     };
@@ -127,10 +123,10 @@ metagraph.singleton = function() {
 metagraph.list = function() {
     return {
         data: function(pattern, fnode) {
-            var [pnode] = resolve_node_refs(pattern, fnode.value().refs);
+            var patref = as_array(fnode.value().refs)[0];
             return function(defn, impl, data, map) {
                 return data.map(function(val) {
-                    return map[defn.node[pnode.key()].members.key.accessor(val)];
+                    return map[defn.node[patref].members.key.accessor(val)];
                 });
             };
         }
@@ -140,11 +136,11 @@ metagraph.map_of_lists = function(accessor) {
     return {
         data: function(pattern, fnode) {
             return function(defn, impl, data, map) {
-                var [pnode] = resolve_node_refs(pattern, fnode.value().refs);
+                var patref = as_array(fnode.value().refs)[0];
                 return data.reduce(function(o, v) {
                     var key = accessor(v);
                     var list = o[key] = o[key] || [];
-                    list.push(map[defn.node[pnode.key()].members.key.accessor(v)]);
+                    list.push(map[defn.node[patref].members.key.accessor(v)]);
                     return o;
                 }, {});
             };
@@ -154,11 +150,11 @@ metagraph.map_of_lists = function(accessor) {
 metagraph.subset = function() {
     return {
         data: function(pattern, fnode) {
-            var [pnode] = resolve_node_refs(pattern, fnode.value().refs);
+            var patref = as_array(fnode.value().refs)[0];
             return function(defn, impl, items, keys) {
                 var set = d3.set(keys);
                 return items.filter(function(r) {
-                    return set.has(defn.node[pnode.key()].members.key.accessor(r));
+                    return set.has(defn.node[patref].members.key.accessor(r));
                 });
             };
         }
