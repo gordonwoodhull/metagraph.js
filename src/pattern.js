@@ -49,14 +49,14 @@ metagraph.pattern = function(spec) {
         if(nvalue.data)
             defn.indices['node.' + nkey] = nvalue.data(node);
         as_array(node.value()).forEach(function(spec) {
-            var nodedef = spec(flowspec, node);
-            as_keyvalue(nodedef.class_members).forEach(function(cmemspec) {
-                defn.node[nkey].class_members[cmemspec.key] = cmemspec.value;
+            as_keyvalue(spec.class_members).forEach(function(cmemspec) {
+                defn.node[nkey].class_members[cmemspec.key] = cmemspec.value(flowspec, node);
             });
-            as_keyvalue(nodedef.members).forEach(function(memspec) {
+            as_keyvalue(spec.members).forEach(function(memspec) {
+                var mem = memspec.value(flowspec, node);
                 defn.node[nkey].members[memspec.key] = {
-                    accessor: memspec.value.accessor,
-                    defn: memspec.value.defn
+                    accessor: mem.accessor,
+                    defn: mem.defn
                 };
             });
         });
@@ -177,10 +177,10 @@ function realize_dataflow(flowspec, pattern, defn, impl) {
     });
 }
 metagraph.createable = function(flowkey) {
-    return function(flowspec, pnode) {
-        return {
-            class_members: {
-                create: {
+    return {
+        class_members: {
+            create: function(flowspec, pnode) {
+                return {
                     defn: function(defn) {
                         return function(data) {
                             var impl = {
@@ -193,27 +193,27 @@ metagraph.createable = function(flowkey) {
                             return env[flowkey];
                         };
                     }
-                }
+                };
             }
-        };
+        }
     };
 };
 metagraph.call = function(methodname) {
     return function(f) {
-        return function(flowspec, pnode) {
-            return {
-                members: [{
-                    key: methodname,
-                    value: {
+        return {
+            members: [{
+                key: methodname,
+                value: function(flowspec, pnode) {
+                    return {
                         accessor: f,
                         defn: function(defn, impl, val) {
                             return function() {
                                 return f(val);
                             };
                         }
-                    }
-                }]
-            };
+                    };
+                }
+            }]
         };
     };
 };
