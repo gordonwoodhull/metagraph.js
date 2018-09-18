@@ -212,6 +212,8 @@ module.exports.jsFiles = [
     'src/graph.js',
     'src/dataflow.js',
     'src/pattern.js',
+    'src/dataflow_calcs.js',
+    'src/interface.js',
     'src/graph_pattern.js',
     'src/subgraph_pattern.js',
     'src/topological_sort.js',
