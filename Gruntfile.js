@@ -35,6 +35,7 @@ module.exports = function (grunt) {
                     mangle: true,
                     compress: true,
                     sourceMap: true,
+                    sourceMapIn: 'metagraph.js.map',
                     banner : '<%= conf.banner %>'
                 },
                 src: '<%= conf.pkg.name %>.js',
