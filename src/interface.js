@@ -48,7 +48,7 @@ metagraph.value = mg.call('value');
 // };
 metagraph.fetch = function() {
     return {
-        funfun: function(iedge) {
+        funfun: function(flowspec, iedge) {
             return function(defn, flow) {
                 return function(x) {
                     return function() {
@@ -61,7 +61,7 @@ metagraph.fetch = function() {
 };
 metagraph.lookup = function() {
     return {
-        funfun: function(iedge) {
+        funfun: function(flowspec, iedge) {
             return function(defn, flow, val) {
                 return function(map) {
                     return function(key) {
@@ -74,7 +74,7 @@ metagraph.lookup = function() {
 };
 metagraph.lookupField = function(access) {
     return {
-        funfun: function(iedge) {
+        funfun: function(flowspec, iedge) {
             return function(defn, flow, val) {
                 return function(map) {
                     return function() {
@@ -87,7 +87,7 @@ metagraph.lookupField = function(access) {
 };
 metagraph.lookupSource = function() {
     return {
-        funfun: function(iedge) {
+        funfun: function(flowspec, iedge) {
             return function(defn, flow, val) {
                 return function(map) {
                     return function() {
@@ -100,7 +100,7 @@ metagraph.lookupSource = function() {
 };
 metagraph.create_subgraph = function() {
     return {
-        funfun: function(iedge) {
+        funfun: function(flowspec, iedge) {
             return function(defn, flow, val) {
                 return function() {
                     return function(nodeKeys, edgeKeys) {
