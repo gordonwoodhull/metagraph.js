@@ -1,13 +1,5 @@
-metagraph.graph_pattern = function(options) {
-    options = Object.assign({
-        nodeKey: function(kv) { return kv.key; },
-        edgeKey: function(kv) { return kv.key; },
-        nodeValue: function(kv) { return kv.value; },
-        edgeValue: function(kv) { return kv.value; },
-        edgeSource: function(kv) { return kv.value.source; },
-        edgeTarget: function(kv) { return kv.value.target; }
-    }, options || {});
-
+metagraph.graph_pattern = function(opts) {
+    var options = graph_options(opts);
     return {
         dataflow: {
             incidences: {
