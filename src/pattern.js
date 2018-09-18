@@ -7,11 +7,8 @@
  *   defines the functions that will respond to data
  * - instantiation - data is provided to the pattern to create objects
  * - binding - if the action needs other indices built, they are built on demand
- *   and provided to the action before it's run (*)
+ *   and provided to the action before it's run
  * - action - responding to user code
- * (*) for building indices, the binding and action happen in one step. when
- * creating member functions, we bind to the indices first, and then return the
- * function that responds to the user, in order not to pollute the signature.
  **/
 metagraph.pattern = function(spec) {
     var flowspec = mg.graph_detect(spec.dataflow),
@@ -25,11 +22,11 @@ metagraph.pattern = function(spec) {
         };
     });
     function resolve(deps, funfun) {
-        return function(defn, impl, val) {
-            var action = funfun(defn, impl, val);
+        return function(defn, flow, val) {
+            var action = funfun(defn, flow, val);
             return function() {
                 return action.apply(null, deps.map(function(dep) {
-                    return impl.flow.calc(dep);
+                    return flow.calc(dep);
                 })).apply(null, arguments);
             };
         };
@@ -60,10 +57,10 @@ metagraph.pattern = function(spec) {
                 };
             });
         });
-        defn.node[nkey].wrap = function(impl, val) {
+        defn.node[nkey].wrap = function(flow, val) {
             var wrapper = {}, members = defn.node[nkey].members;
             Object.keys(members).forEach(function(name) {
-                wrapper[name] = members[name].defn(defn, impl, val);
+                wrapper[name] = members[name].defn(defn, flow, val);
             });
             return wrapper;
         };
@@ -88,12 +85,12 @@ metagraph.pattern = function(spec) {
     return mg.graph(nodes2, edges2);
 };
 
-function realize_dataflow(flowspec, interf, defn, impl) {
+function realize_dataflow(flowspec, defn, inputs) {
     var flownodes = flowspec.nodes().map(function(fsn) {
         return {
             key: fsn.key(),
             value: {
-                calc: fsn.value().node.calc(interf, fsn).bind(null, defn, impl)
+                calc: fsn.value().node.calc(fsn)(defn, inputs)
             }
         };
     });
