@@ -13,12 +13,12 @@ metagraph.input = function(name) {
 metagraph.map = function() {
     return {
         calc: function(fnode) {
-            var patref = as_array(fnode.value().refs)[0];
+            var iref = as_array(fnode.value().refs)[0];
             return function(defn, inputs) {
                 return function(data) {
                     return build_map(data,
-                                     defn.node[patref].members.key.accessor,
-                                     defn.node[patref].wrap.bind(null, this));
+                                     defn.node[iref].members.key.accessor,
+                                     defn.node[iref].wrap.bind(null, this));
                 };
             };
         }
@@ -38,11 +38,11 @@ metagraph.singleton = function() {
 metagraph.list = function() {
     return {
         calc: function(fnode) {
-            var patref = as_array(fnode.value().refs)[0];
+            var iref = as_array(fnode.value().refs)[0];
             return function(defn, inputs) {
                 return function(data, map) {
                     return data.map(function(val) {
-                        return map[defn.node[patref].members.key.accessor(val)];
+                        return map[defn.node[iref].members.key.accessor(val)];
                     });
                 };
             };
@@ -54,11 +54,11 @@ metagraph.map_of_lists = function(accessor) {
         calc: function(fnode) {
             return function(defn, inputs) {
                 return function(data, map) {
-                    var patref = as_array(fnode.value().refs)[0];
+                    var iref = as_array(fnode.value().refs)[0];
                     return data.reduce(function(o, v) {
                         var key = accessor(v);
                         var list = o[key] = o[key] || [];
-                        list.push(map[defn.node[patref].members.key.accessor(v)]);
+                        list.push(map[defn.node[iref].members.key.accessor(v)]);
                         return o;
                     }, {});
                 };
@@ -69,12 +69,12 @@ metagraph.map_of_lists = function(accessor) {
 metagraph.subset = function() {
     return {
         calc: function(fnode) {
-            var patref = as_array(fnode.value().refs)[0];
+            var iref = as_array(fnode.value().refs)[0];
             return function(defn, inputs) {
                 return function(items, keys) {
                     var set = d3.set(keys);
                     return items.filter(function(r) {
-                        return set.has(defn.node[patref].members.key.accessor(r));
+                        return set.has(defn.node[iref].members.key.accessor(r));
                     });
                 };
             };

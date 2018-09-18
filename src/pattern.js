@@ -15,8 +15,8 @@ metagraph.pattern = function(spec) {
         interf = mg.graph_detect(spec.interface);
     var defn = {node: {}, edge: {}};
 
-    interf.nodes().forEach(function(node) {
-        defn.node[node.key()] = {
+    interf.nodes().forEach(function(inode) {
+        defn.node[inode.key()] = {
             members: {},
             class_members: {}
         };
@@ -31,26 +31,26 @@ metagraph.pattern = function(spec) {
             };
         };
     }
-    interf.edges().forEach(function(edge) {
-        var ekey = edge.key(), evalue = edge.value();
+    interf.edges().forEach(function(iedge) {
+        var ekey = iedge.key(), evalue = iedge.value();
         var action = evalue.member;
         if(action && action.funfun) {
-            var funfun = action.funfun(edge);
+            var funfun = action.funfun(iedge);
             var deps = as_array(evalue.deps);
             funfun = deps.length ? resolve(deps, funfun) : funfun;
-            defn.node[edge.source().key()].members[evalue.name] = {defn: funfun};
+            defn.node[iedge.source().key()].members[evalue.name] = {defn: funfun};
         }
     });
-    interf.nodes().forEach(function(node) {
-        var nkey = node.key(), nvalue = node.value();
+    interf.nodes().forEach(function(inode) {
+        var nkey = inode.key(), nvalue = inode.value();
         if(nvalue.data)
-            defn.indices['node.' + nkey] = nvalue.data(node);
-        as_array(node.value()).forEach(function(spec) {
+            defn.indices['node.' + nkey] = nvalue.data(inode);
+        as_array(inode.value()).forEach(function(spec) {
             as_keyvalue(spec.class_members).forEach(function(cmemspec) {
-                defn.node[nkey].class_members[cmemspec.key] = cmemspec.value(flowspec, node);
+                defn.node[nkey].class_members[cmemspec.key] = cmemspec.value(flowspec, inode);
             });
             as_keyvalue(spec.members).forEach(function(memspec) {
-                var mem = memspec.value(flowspec, node);
+                var mem = memspec.value(flowspec, inode);
                 defn.node[nkey].members[memspec.key] = {
                     accessor: mem.accessor,
                     defn: mem.defn
@@ -66,14 +66,14 @@ metagraph.pattern = function(spec) {
         };
     });
 
-    var nodes2 = interf.nodes().map(function(n) {
+    var inodes2 = interf.nodes().map(function(n) {
         var n2 = {key: n.key(), value: {}}, class_members = defn.node[n.key()].class_members;
         Object.keys(class_members).forEach(function(name) {
             n2.value[name] = class_members[name].defn(defn);
         });
         return n2;
     });
-    var edges2 = interf.edges().map(function(e) {
+    var iedges2 = interf.edges().map(function(e) {
         var e2 = {
             key: e.key(),
             value: {
@@ -82,7 +82,7 @@ metagraph.pattern = function(spec) {
             }
         };
     });
-    return mg.graph(nodes2, edges2);
+    return mg.graph(inodes2, iedges2);
 };
 
 function realize_dataflow(flowspec, defn, inputs) {

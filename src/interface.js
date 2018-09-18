@@ -1,14 +1,14 @@
 metagraph.createable = function(flowkey) {
     return {
         class_members: {
-            create: function(flowspec, pnode) {
+            create: function(flowspec, inode) {
                 return {
                     defn: function(defn) {
                         return function(data) {
                             var flowg = realize_dataflow(flowspec, defn, {data: data});
                             var env = {};
                             var flow = flowg.instantiate(env);
-                            env[flowkey] = defn.node[pnode.key()].wrap(flow, data[pnode.key()]);
+                            env[flowkey] = defn.node[inode.key()].wrap(flow, data[inode.key()]);
                             return env[flowkey];
                         };
                     }
@@ -22,7 +22,7 @@ metagraph.call = function(methodname) {
         return {
             members: [{
                 key: methodname,
-                value: function(flowspec, pnode) {
+                value: function(flowspec, inode) {
                     return {
                         accessor: f,
                         defn: function(defn, flow, val) {
@@ -48,7 +48,7 @@ metagraph.value = mg.call('value');
 // };
 metagraph.fetch = function() {
     return {
-        funfun: function(edge) {
+        funfun: function(iedge) {
             return function(defn, flow) {
                 return function(x) {
                     return function() {
@@ -61,7 +61,7 @@ metagraph.fetch = function() {
 };
 metagraph.lookup = function() {
     return {
-        funfun: function(edge) {
+        funfun: function(iedge) {
             return function(defn, flow, val) {
                 return function(map) {
                     return function(key) {
@@ -74,7 +74,7 @@ metagraph.lookup = function() {
 };
 metagraph.lookupField = function(access) {
     return {
-        funfun: function(edge) {
+        funfun: function(iedge) {
             return function(defn, flow, val) {
                 return function(map) {
                     return function() {
@@ -87,11 +87,11 @@ metagraph.lookupField = function(access) {
 };
 metagraph.lookupSource = function() {
     return {
-        funfun: function(edge) {
+        funfun: function(iedge) {
             return function(defn, flow, val) {
                 return function(map) {
                     return function() {
-                        return map[defn.node[edge.source().key()].members.key.accessor(val)] || [];
+                        return map[defn.node[iedge.source().key()].members.key.accessor(val)] || [];
                     };
                 };
             };
@@ -100,12 +100,12 @@ metagraph.lookupSource = function() {
 };
 metagraph.create_subgraph = function() {
     return {
-        funfun: function(edge) {
-            return function(defn, impl, val) {
+        funfun: function(iedge) {
+            return function(defn, flow, val) {
                 return function() {
                     return function(nodeKeys, edgeKeys) {
-                        edge.target().value().create({
-                            ParentNode: impl.source_data[edge.source()],
+                        iedge.target().value().create({
+                            ParentNode: impl.source_data[iedge.source()],
                             ParentEdge: impl.source_data
                         });
                     };
