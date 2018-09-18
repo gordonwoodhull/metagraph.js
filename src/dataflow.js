@@ -6,7 +6,7 @@ metagraph.dataflow = function(spec, options) {
                 calc: function(id) {
                     if(!instance[id]) {
                         var n = flowgraph.node(id);
-                        instance[id] = n.value().calc.apply(null, n.ins().map(function(e) {
+                        instance[id] = n.value().calc.apply(_inst, n.ins().map(function(e) {
                             return _inst.calc(e.source().key());
                         }));
                         console.assert(instance[id]);
