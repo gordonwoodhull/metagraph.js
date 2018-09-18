@@ -161,4 +161,5 @@ metagraph.graph_detect = function(spec, opts) {
         return mg.graph_incidence(spec.incidences, opts);
     else if(spec.nodes)
         return mg.graph_adjacency(spec.nodes, spec.edges, opts);
+    throw new Error('did not recognize graph format');
 };
