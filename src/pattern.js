@@ -43,8 +43,6 @@ metagraph.pattern = function(spec) {
     });
     interf.nodes().forEach(function(inode) {
         var nkey = inode.key(), nvalue = inode.value();
-        if(nvalue.data)
-            defn.indices['node.' + nkey] = nvalue.data(inode);
         as_array(inode.value()).forEach(function(spec) {
             as_keyvalue(spec.class_members).forEach(function(cmemspec) {
                 defn.node[nkey].class_members[cmemspec.key] = cmemspec.value(flowspec, inode);
