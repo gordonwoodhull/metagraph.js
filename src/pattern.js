@@ -35,7 +35,7 @@ metagraph.pattern = function(spec) {
         var ekey = iedge.key(), evalue = iedge.value();
         var action = evalue.member;
         if(action && action.funfun) {
-            var funfun = action.funfun(iedge);
+            var funfun = action.funfun(flowspec, iedge);
             var deps = as_array(evalue.deps);
             funfun = deps.length ? resolve(deps, funfun) : funfun;
             defn.node[iedge.source().key()].members[evalue.name] = {defn: funfun};
@@ -83,12 +83,12 @@ metagraph.pattern = function(spec) {
     return mg.graph(inodes2, iedges2);
 };
 
-function realize_dataflow(flowspec, defn, inputs) {
+function define_dataflow(flowspec, defn) {
     var flownodes = flowspec.nodes().map(function(fsn) {
         return {
             key: fsn.key(),
             value: {
-                calc: fsn.value().node.calc(fsn)(defn, inputs)
+                calc: fsn.value().node.calc(fsn)(defn)
             }
         };
     });

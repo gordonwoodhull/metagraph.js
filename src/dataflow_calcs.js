@@ -2,9 +2,9 @@ metagraph.input = function(name) {
     return {
         calc: function(fnode) {
             name = name || fnode.key();
-            return function(defn, inputs) {
+            return function(defn) {
                 return function() {
-                    return inputs.data[name];
+                    return this.input('data', name);
                 };
             };
         }
@@ -14,7 +14,7 @@ metagraph.map = function() {
     return {
         calc: function(fnode) {
             var iref = as_array(fnode.value().refs)[0];
-            return function(defn, inputs) {
+            return function(defn) {
                 return function(data) {
                     return build_map(data,
                                      defn.node[iref].members.key.accessor,
@@ -27,7 +27,7 @@ metagraph.map = function() {
 metagraph.singleton = function() {
     return {
         calc: function(fnode) {
-            return function(defn, inputs) {
+            return function(defn) {
                 return function() {
                     throw new Error('singleton not initialized');
                 };
@@ -39,7 +39,7 @@ metagraph.list = function() {
     return {
         calc: function(fnode) {
             var iref = as_array(fnode.value().refs)[0];
-            return function(defn, inputs) {
+            return function(defn) {
                 return function(data, map) {
                     return data.map(function(val) {
                         return map[defn.node[iref].members.key.accessor(val)];
@@ -52,7 +52,7 @@ metagraph.list = function() {
 metagraph.map_of_lists = function(accessor) {
     return {
         calc: function(fnode) {
-            return function(defn, inputs) {
+            return function(defn) {
                 return function(data, map) {
                     var iref = as_array(fnode.value().refs)[0];
                     return data.reduce(function(o, v) {
@@ -70,7 +70,7 @@ metagraph.subset = function() {
     return {
         calc: function(fnode) {
             var iref = as_array(fnode.value().refs)[0];
-            return function(defn, inputs) {
+            return function(defn) {
                 return function(items, keys) {
                     var set = d3.set(keys);
                     return items.filter(function(r) {

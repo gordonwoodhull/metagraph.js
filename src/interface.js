@@ -4,10 +4,10 @@ metagraph.createable = function(flowkey) {
             create: function(flowspec, inode) {
                 return {
                     defn: function(defn) {
+                        var flowg = define_dataflow(flowspec, defn);
                         return function(data) {
-                            var flowg = realize_dataflow(flowspec, defn, {data: data});
                             var env = {};
-                            var flow = flowg.instantiate(env);
+                            var flow = flowg.instantiate(env, {data: data});
                             env[flowkey] = defn.node[inode.key()].wrap(flow, data[inode.key()]);
                             return env[flowkey];
                         };

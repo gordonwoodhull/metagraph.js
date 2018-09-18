@@ -1,7 +1,7 @@
 metagraph.dataflow = function(spec, options) {
     var flowgraph = mg.graph_detect(spec, options);
     var _flow = {
-        instantiate: function(instance) {
+        instantiate: function(instance, inputs) {
             var _inst = {
                 calc: function(id) {
                     if(!instance[id]) {
@@ -12,6 +12,9 @@ metagraph.dataflow = function(spec, options) {
                         console.assert(instance[id]);
                     }
                     return instance[id];
+                },
+                input: function(namespace, field) {
+                    return inputs[namespace][field];
                 }
             };
             return _inst;
