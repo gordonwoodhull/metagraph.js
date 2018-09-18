@@ -1,8 +1,8 @@
 /**
  * The reason there are so many higher-order functions is that there are five
  * stages of a pattern's life:
- * - specification - the pattern author specifies a pattern by calling lookup and
- *   friends. the pattern may take options with accessors for reading raw array data
+ * - specification - the pattern author specifies a pattern in terms of its dataflow and
+ *   interface. the pattern is parameterized on user-supplied data accessors
  * - definition (compilation) - the pattern walks the resulting graph and
  *   defines the functions that will respond to data
  * - instantiation - data is provided to the pattern to create objects
@@ -15,10 +15,10 @@
  **/
 metagraph.pattern = function(spec) {
     var flowspec = mg.graph_detect(spec.dataflow),
-        pattern = mg.graph_detect(spec.pattern);
+        interf = mg.graph_detect(spec.interface);
     var defn = {node: {}, edge: {}};
 
-    pattern.nodes().forEach(function(node) {
+    interf.nodes().forEach(function(node) {
         defn.node[node.key()] = {
             members: {},
             class_members: {}
@@ -34,7 +34,7 @@ metagraph.pattern = function(spec) {
             };
         };
     }
-    pattern.edges().forEach(function(edge) {
+    interf.edges().forEach(function(edge) {
         var ekey = edge.key(), evalue = edge.value();
         var action = evalue.member;
         if(action && action.funfun) {
@@ -44,7 +44,7 @@ metagraph.pattern = function(spec) {
             defn.node[edge.source().key()].members[evalue.name] = {defn: funfun};
         }
     });
-    pattern.nodes().forEach(function(node) {
+    interf.nodes().forEach(function(node) {
         var nkey = node.key(), nvalue = node.value();
         if(nvalue.data)
             defn.indices['node.' + nkey] = nvalue.data(node);
@@ -69,14 +69,14 @@ metagraph.pattern = function(spec) {
         };
     });
 
-    var nodes2 = pattern.nodes().map(function(n) {
+    var nodes2 = interf.nodes().map(function(n) {
         var n2 = {key: n.key(), value: {}}, class_members = defn.node[n.key()].class_members;
         Object.keys(class_members).forEach(function(name) {
             n2.value[name] = class_members[name].defn(defn);
         });
         return n2;
     });
-    var edges2 = pattern.edges().map(function(e) {
+    var edges2 = interf.edges().map(function(e) {
         var e2 = {
             key: e.key(),
             value: {
@@ -91,7 +91,7 @@ metagraph.pattern = function(spec) {
 // dataflow nodes
 metagraph.input = function(name) {
     return {
-        data: function(pattern, fnode) {
+        data: function(interf, fnode) {
             name = name || fnode.key();
             return function(defn, impl) {
                 return impl.source_data[name];
@@ -101,7 +101,7 @@ metagraph.input = function(name) {
 };
 metagraph.map = function() {
     return {
-        data: function(pattern, fnode) {
+        data: function(interf, fnode) {
             var patref = as_array(fnode.value().refs)[0];
             return function(defn, impl, data) {
                 return build_map(data,
@@ -113,7 +113,7 @@ metagraph.map = function() {
 };
 metagraph.singleton = function() {
     return {
-        data: function(pattern, fnode) {
+        data: function(interf, fnode) {
             return function(defn, impl) {
                 throw new Error('singleton not initialized');
             };
@@ -122,7 +122,7 @@ metagraph.singleton = function() {
 };
 metagraph.list = function() {
     return {
-        data: function(pattern, fnode) {
+        data: function(interf, fnode) {
             var patref = as_array(fnode.value().refs)[0];
             return function(defn, impl, data, map) {
                 return data.map(function(val) {
@@ -134,7 +134,7 @@ metagraph.list = function() {
 };
 metagraph.map_of_lists = function(accessor) {
     return {
-        data: function(pattern, fnode) {
+        data: function(interf, fnode) {
             return function(defn, impl, data, map) {
                 var patref = as_array(fnode.value().refs)[0];
                 return data.reduce(function(o, v) {
@@ -149,7 +149,7 @@ metagraph.map_of_lists = function(accessor) {
 };
 metagraph.subset = function() {
     return {
-        data: function(pattern, fnode) {
+        data: function(interf, fnode) {
             var patref = as_array(fnode.value().refs)[0];
             return function(defn, impl, items, keys) {
                 var set = d3.set(keys);
@@ -161,13 +161,13 @@ metagraph.subset = function() {
     };
 };
 
-// pattern nodes
-function realize_dataflow(flowspec, pattern, defn, impl) {
+// interface nodes
+function realize_dataflow(flowspec, interf, defn, impl) {
     var flownodes = flowspec.nodes().map(function(fsn) {
         return {
             key: fsn.key(),
             value: {
-                calc: fsn.value().node.data(pattern, fsn).bind(null, defn, impl)
+                calc: fsn.value().node.data(interf, fsn).bind(null, defn, impl)
             }
         };
     });
@@ -220,7 +220,7 @@ metagraph.call = function(methodname) {
 metagraph.key = mg.call('key');
 metagraph.value = mg.call('value');
 
-// pattern edges
+// interface edges
 // metagraph.reference = function(role) {
 //     return {
 //         single: role.value().single,

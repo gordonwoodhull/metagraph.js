@@ -38,7 +38,7 @@ metagraph.graph_pattern = function(opts) {
                 }
             }
         },
-        pattern: {
+        interface: {
             nodes: {
                 Graph: mg.createable('graph'),
                 Node: [mg.key(options.nodeKey), mg.value(options.nodeValue)],
