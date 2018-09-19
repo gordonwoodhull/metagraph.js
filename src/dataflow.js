@@ -3,6 +3,7 @@ metagraph.dataflow = function(spec, options) {
     var _flow = {
         instantiate: function(instance, inputs) {
             var _inst = {
+                _yes_i_am_really_dataflow: true,
                 calc: function(id) {
                     if(!instance[id]) {
                         var n = flowgraph.node(id);
@@ -14,7 +15,9 @@ metagraph.dataflow = function(spec, options) {
                     return instance[id];
                 },
                 input: function(namespace, field) {
-                    return inputs[namespace][field];
+                    if(inputs[namespace]._yes_i_am_really_dataflow)
+                        return inputs[namespace].calc(field);
+                    else return inputs[namespace][field];
                 }
             };
             return _inst;

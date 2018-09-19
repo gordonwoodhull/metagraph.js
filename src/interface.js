@@ -40,12 +40,11 @@ metagraph.key = mg.call('key');
 metagraph.value = mg.call('value');
 
 // interface edges
-// metagraph.reference = function(role) {
-//     return {
-//         single: role.value().single,
-//         reference: role
-//     };
-// };
+metagraph.reference = function(inode) {
+    return {
+        reference: inode
+    };
+};
 metagraph.fetch = function() {
     return {
         funfun: function(flowspec, iedge) {
@@ -98,16 +97,22 @@ metagraph.lookupSource = function() {
         }
     };
 };
-metagraph.create_subgraph = function() {
+metagraph.subgraph = function() {
     return {
         funfun: function(flowspec, iedge) {
             return function(defn, flow, val) {
+                var flowg = define_dataflow(flowspec, defn);
                 return function() {
-                    return function(nodeKeys, edgeKeys) {
-                        iedge.target().value().create({
-                            ParentNode: impl.source_data[iedge.source()],
-                            ParentEdge: impl.source_data
-                        });
+                    return function(nodeKeys, edgeKeys, gdata) {
+                        var env = {};
+                        var flow = flowg.instantiate(env, {
+                            data: {
+                                nodeKeys: nodeKeys,
+                                edgeKeys: edgeKeys
+                            },
+                            parent: flow});
+                        env.graph = defn.node[iedge.target().key()].wrap(flow, gdata);
+                        return env.graph;
                     };
                 };
             };

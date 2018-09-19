@@ -1,10 +1,23 @@
-metagraph.input = function(name) {
+metagraph.input = function(name, namespace) {
     return {
         calc: function(fnode) {
             name = name || fnode.key();
+            namespace = namespace || 'data';
             return function(defn) {
                 return function() {
-                    return this.input('data', name);
+                    return this.input(namespace, name);
+                };
+            };
+        }
+    };
+};
+// pass-through
+metagraph.output = function(name, namespace) {
+    return {
+        calc: function(fnode) {
+            return function(defn) {
+                return function(x) {
+                    return x;
                 };
             };
         }
