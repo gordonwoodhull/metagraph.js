@@ -36,20 +36,34 @@ metagraph.subgraph_pattern = function(opts) {
                 subgraph: {
                     name: 'subgraph',
                     source: 'ParentGraph', target: 'ChildGraph',
-                    dir: 'both',
                     member: mg.subgraph()
                 },
                 subnode: {
                     name: 'subnode',
                     source: 'ParentGraph', target: 'ChildGraph',
-                    dir: 'both',
-                    deps: 'child.node_by_key',
+                    deps: 'parent.node_by_key',
                     member: mg.lookup()
                 },
                 subedge: {
                     name: 'subedge',
                     source: 'ParentGraph', target: 'ChildGraph',
-                    dir: 'both',
+                    deps: 'parent.edge_by_key',
+                    flow: mg.lookup()
+                },
+                subgraphS: {
+                    name: 'subgraph',
+                    source: 'ChildGraph', target: 'ParentGraph',
+                    member: mg.subgraph()
+                },
+                subnodeS: {
+                    name: 'subnode',
+                    source: 'ChildGraph', target: 'ParentGraph',
+                    deps: 'child.node_by_key',
+                    member: mg.lookup()
+                },
+                subedgeS: {
+                    name: 'subedge',
+                    source: 'ChildGraph', target: 'ParentGraph',
                     deps: 'child.edge_by_key',
                     flow: mg.lookup()
                 }
