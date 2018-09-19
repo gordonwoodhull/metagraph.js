@@ -26,7 +26,11 @@ metagraph.pattern = function(spec, flowspecs) {
             var action = funfun(defn, flow, val);
             return function() {
                 return action.apply(null, deps.map(function(dep) {
-                    return flow.calc(dep);
+                    var parts = dep.split('.');
+                    if(parts.length > 1)
+                        return flow.input(parts[0], parts[1]);
+                    else
+                        return flow.calc(dep);
                 })).apply(null, arguments);
             };
         };
@@ -36,9 +40,9 @@ metagraph.pattern = function(spec, flowspecs) {
         var fs = flowspec || flowspecs[ekey.split('.')[0]];
         var action = evalue.member;
         if(action && action.funfun) {
-            var funfun = action.funfun(fs, iedge);
+            var funfun = action.funfun(fs, iedge, flowspecs);
             var deps = as_array(evalue.deps);
-            funfun = deps.length ? resolve(deps, funfun) : funfun;
+            funfun = resolve(deps, funfun);
             defn.node[iedge.source().key()].members[evalue.name] = {defn: funfun};
         }
     });

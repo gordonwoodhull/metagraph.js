@@ -99,20 +99,29 @@ metagraph.lookupSource = function() {
 };
 metagraph.subgraph = function() {
     return {
-        funfun: function(flowspec, iedge) {
+        funfun: function(flowspec, iedge, flowspecs) {
             return function(defn, flow, val) {
-                var flowg = define_dataflow(flowspec, defn);
+                var subflow = define_dataflow(flowspec, defn), graflow = subflow;
+                var parts = iedge.target().key().split('.');
+                if(parts.length > 1) {
+                    var dest = parts[0];
+                    graflow = define_dataflow(flowspecs[dest], defn);
+                }
                 return function() {
                     return function(nodeKeys, edgeKeys, gdata) {
-                        var env = {};
-                        var flow = flowg.instantiate(env, {
+                        // two environments, one for the sub-pattern and one for the graph pattern
+                        var sgflow = subflow.instantiate({}, {
                             data: {
                                 nodeKeys: nodeKeys,
                                 edgeKeys: edgeKeys
                             },
                             parent: flow});
-                        env.graph = defn.node[iedge.target().key()].wrap(flow, gdata);
-                        return env.graph;
+                        var genv = {};
+                        var gflow = graflow.instantiate(genv, {
+                            data: sgflow
+                        });
+                        genv.graph = defn.node[iedge.target().key()].wrap(gflow, gdata);
+                        return genv.graph;
                     };
                 };
             };

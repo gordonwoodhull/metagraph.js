@@ -91,7 +91,7 @@ metagraph.subset = function() {
             var iref = as_array(fnode.value().refs)[0];
             return function(defn) {
                 return function(items, keys) {
-                    var set = d3.set(keys);
+                    var set = new Set(keys);
                     return items.filter(function(r) {
                         return set.has(defn.node[iref].members.key.accessor(r));
                     });
