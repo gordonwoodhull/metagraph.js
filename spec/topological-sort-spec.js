@@ -92,7 +92,6 @@ describe('graph_pattern', function() {
             expect(topologically_sorted(graph, graph.nodes())).toBeFalsy();
         });
         it('but sorting leaves it so', function() {
-            console.log(metagraph.topological_sort(graph).map(get_key));
             expect(topologically_sorted(graph,
                                         metagraph.topological_sort(graph))).toBeTruthy();
         });
