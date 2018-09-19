@@ -134,9 +134,30 @@ describe('subgraph', function() {
                 it('edge g has source c', function() {
                     expect(subgraph.edge('g').source().key()).toEqual('c');
                 });
-                // this is weird, an artifact of the 
+                // this is weird
                 it('edge g has no target', function() {
                     expect(subgraph.edge('g').target()).toBeFalsy();
+                });
+                it('can fetch subnode a', function() {
+                    var sa = subgraph.subnode(graph.node('a'));
+                    expect(sa.key()).toEqual('a');
+                    expect(sa.graph()).toBe(subgraph);
+                });
+                it('cannot fetch subnode d', function() {
+                    expect(subgraph.subnode(graph.node('d'))).toBeFalsy();
+                });
+
+                describe('of subgraph', function() {
+                    var subgraph2;
+                    beforeEach(function() {
+                        subgraph2 = subgraph.subgraph(['a','b'], ['e']);
+                    });
+                    it('has nodes a,b', function() {
+                        expect(subgraph2.nodes().map(get_key)).toEqual(['a','b']);
+                    });
+                    it('has edge e', function() {
+                        expect(subgraph2.edges().map(get_key)).toEqual(['e']);
+                    });
                 });
             });
         });
