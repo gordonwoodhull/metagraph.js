@@ -15,9 +15,10 @@ metagraph.dataflow = function(spec, options) {
                     return instance[id];
                 },
                 input: function(namespace, field) {
-                    if(inputs[namespace]._yes_i_am_really_dataflow)
-                        return inputs[namespace].calc(field);
-                    else return inputs[namespace][field];
+                    var input = inputs[namespace];
+                    if(input._yes_i_am_really_dataflow)
+                        return input.calc(field);
+                    else return input[field];
                 }
             };
             return _inst;

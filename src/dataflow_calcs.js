@@ -1,7 +1,13 @@
-metagraph.input = function(name, namespace) {
+metagraph.input = function(name) {
     return {
         calc: function(fnode) {
+            var namespace;
             name = name || fnode.key();
+            var parts = name.split('.');
+            if(parts.length > 1) {
+                namespace = parts[0];
+                name = parts[1];
+            }
             namespace = namespace || 'data';
             return function(defn) {
                 return function() {

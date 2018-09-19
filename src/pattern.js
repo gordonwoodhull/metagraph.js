@@ -10,8 +10,8 @@
  *   and provided to the action before it's run
  * - action - responding to user code
  **/
-metagraph.pattern = function(spec) {
-    var flowspec = mg.graph_detect(spec.dataflow),
+metagraph.pattern = function(spec, flowspecs) {
+    var flowspec = spec.dataflow && mg.graph_detect(spec.dataflow),
         interf = mg.graph_detect(spec.interface);
     var defn = {node: {}, edge: {}};
 
@@ -33,9 +33,10 @@ metagraph.pattern = function(spec) {
     }
     interf.edges().forEach(function(iedge) {
         var ekey = iedge.key(), evalue = iedge.value();
+        var fs = flowspec || flowspecs[ekey.split('.')[0]];
         var action = evalue.member;
         if(action && action.funfun) {
-            var funfun = action.funfun(flowspec, iedge);
+            var funfun = action.funfun(fs, iedge);
             var deps = as_array(evalue.deps);
             funfun = deps.length ? resolve(deps, funfun) : funfun;
             defn.node[iedge.source().key()].members[evalue.name] = {defn: funfun};
@@ -43,12 +44,13 @@ metagraph.pattern = function(spec) {
     });
     interf.nodes().forEach(function(inode) {
         var nkey = inode.key(), nvalue = inode.value();
+        var fs = flowspec || flowspecs[nkey.split('.')[0]];
         as_array(inode.value()).forEach(function(spec) {
             as_keyvalue(spec.class_members).forEach(function(cmemspec) {
-                defn.node[nkey].class_members[cmemspec.key] = cmemspec.value(flowspec, inode);
+                defn.node[nkey].class_members[cmemspec.key] = cmemspec.value(fs, inode);
             });
             as_keyvalue(spec.members).forEach(function(memspec) {
-                var mem = memspec.value(flowspec, inode);
+                var mem = memspec.value(fs, inode);
                 defn.node[nkey].members[memspec.key] = {
                     accessor: mem.accessor,
                     defn: mem.defn
