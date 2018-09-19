@@ -9,12 +9,12 @@ metagraph.subgraph_pattern = function(opts) {
                 edge_keys: {node: mg.input('edgeKeys')},
                 subset_nodes: {
                     node: mg.subset(),
-                    refs: 'Node',
+                    refs: 'child.Node',
                     ins: ['parent_nodes', 'node_keys']
                 },
                 subset_edges: {
                     node: mg.subset(),
-                    refs: 'Edge',
+                    refs: 'child.Edge',
                     ins: ['parent_edges', 'edge_keys']
                 },
                 nodes: {
