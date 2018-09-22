@@ -49,7 +49,7 @@ metagraph.graph_pattern = function(opts) {
                     name: 'node',
                     source: 'Graph', target: 'Node',
                     deps: 'node_by_key',
-                    member: mg.lookup()
+                    member: mg.lookupArg()
                 },
                 node_graph: {
                     name: 'graph',
@@ -67,7 +67,7 @@ metagraph.graph_pattern = function(opts) {
                     name: 'edge',
                     source: 'Graph', target: 'Edge',
                     deps: 'edge_by_key',
-                    member: mg.lookup()
+                    member: mg.lookupArg()
                 },
                 edge_graph: {
                     name: 'graph',
@@ -85,25 +85,25 @@ metagraph.graph_pattern = function(opts) {
                     name: 'source',
                     source: 'Edge', target: 'Node',
                     deps: 'node_by_key',
-                    member: mg.lookupField(options.edgeSource)
+                    member: mg.lookupFVal(options.edgeSource)
                 },
                 edge_target: {
                     name: 'target',
                     source: 'Edge', target: 'Node',
                     deps: 'node_by_key',
-                    member: mg.lookupField(options.edgeTarget)
+                    member: mg.lookupFVal(options.edgeTarget)
                 },
                 node_outs: {
                     name: 'outs',
                     source: 'Node', target: 'Edge',
                     deps: 'node_outs',
-                    member: mg.lookupSource()
+                    member: mg.lookupKVal()
                 },
                 node_ins: {
                     name: 'ins',
                     source: 'Node', target: 'Edge',
                     deps: 'node_ins',
-                    member: mg.lookupSource()
+                    member: mg.lookupKVal()
                 }
             }
         }

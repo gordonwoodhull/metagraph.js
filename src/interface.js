@@ -58,20 +58,21 @@ metagraph.fetch = function() {
         }
     };
 };
-metagraph.lookup = function() {
+metagraph.lookupArg = function(access) {
     return {
         funfun: function(flowspec, iedge) {
+            access = access || (x => x);
             return function(defn, flow, val) {
                 return function(map) {
                     return function(key) {
-                        return map[key];
+                        return map[access(key)];
                     };
                 };
             };
         }
     };
 };
-metagraph.lookupField = function(access) {
+metagraph.lookupFVal = function(access) {
     return {
         funfun: function(flowspec, iedge) {
             return function(defn, flow, val) {
@@ -84,7 +85,7 @@ metagraph.lookupField = function(access) {
         }
     };
 };
-metagraph.lookupSource = function() {
+metagraph.lookupKVal = function() {
     return {
         funfun: function(flowspec, iedge) {
             return function(defn, flow, val) {
