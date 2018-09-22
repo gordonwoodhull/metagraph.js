@@ -14,18 +14,10 @@ describe('dataflow', function() {
         edgeTarget: e=>e.head
     };
     describe('arithmetic', function() {
-        function add(a, b) {
-            return a+b;
-        }
-        function subtract(a, b) {
-            return a-b;
-        }
-        function multiply(a, b) {
-            return a*b;
-        }
-        function divide(a, b) {
-            return a/b;
-        }
+        var add = flow => (a,b) => a+b,
+            subtract = flow => (a,b) => a-b,
+            multiply = flow => (a,b) => a*b,
+            divide = flow => (a,b) => a/b;
         var spec = {
             nodes: [
                 {id: 'a'},
