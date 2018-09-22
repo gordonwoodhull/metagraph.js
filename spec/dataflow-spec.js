@@ -54,8 +54,8 @@ describe('dataflow', function() {
                 expect(arithflow.instantiate(inst).calc('b*c/(a+a)')).toBe(3);
             });
         });
-        describe('with 2,4,17', function() {
-            var inst = {a: 2, b: 4, c: 17};
+        describe('with 2,8,8.5', function() {
+            var inst = {a: 2, b: 8, c: 8.5};
             it('results in 17', function() {
                 expect(arithflow.instantiate(inst).calc('b*c/(a+a)')).toBe(17);
             });
