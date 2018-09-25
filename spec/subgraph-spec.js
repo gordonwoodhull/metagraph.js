@@ -150,13 +150,13 @@ describe('subgraph', function() {
                 describe('of subgraph', function() {
                     var subgraph2;
                     beforeEach(function() {
-                        subgraph2 = subgraph.subgraph(['a','b'], ['e']);
+                        subgraph2 = subgraph.subgraph(['a','b','d'], ['e', 'f']);
                     });
-                    it('has nodes a,b', function() {
+                    it('has only the nodes of parent', function() {
                         expect(subgraph2.nodes().map(get_key)).toEqual(['a','b']);
                     });
-                    it('has edge e', function() {
-                        expect(subgraph2.edges().map(get_key)).toEqual(['e']);
+                    it('has only the edges of parent', function() {
+                        expect(subgraph2.edges().map(get_key)).toEqual(['f']);
                     });
                 });
             });
