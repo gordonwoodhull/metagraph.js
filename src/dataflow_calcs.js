@@ -1,14 +1,9 @@
-metagraph.input = function(name) {
+metagraph.input = function(path) {
     return {
         calc: function(fnode) {
-            var namespace;
-            name = name || fnode.key();
-            var parts = name.split('.');
-            if(parts.length > 1) {
-                namespace = parts[0];
-                name = parts[1];
-            }
-            namespace = namespace || 'data';
+            path = path || fnode.key();
+            var parts = path.split('.');
+            var [namespace, name] = parts.length > 1 ? parts : ['data', path];
             return function(defn) {
                 return function(flow) {
                     return function() {
