@@ -1,3 +1,6 @@
+# 0.0.7
+ * subgraphs, the first higher-order graph data structure
+
 # 0.0.6
  * indices are now just data, all data is lazily loaded
  * nodes have data which should be overridable (when we get to pattern assembly)
