@@ -1,0 +1,7 @@
+{
+  "esversion": 6,
+  "globals": {
+    "metagraph": true,
+    "as_keyvalue": true
+  }
+}
