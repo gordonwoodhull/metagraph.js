@@ -61,28 +61,17 @@ module.exports = function (grunt) {
                 ]
             }
         },
-        jscs: {
-            old: {
-                src: ['<%= conf.spec %>/**/*.js'],
-                options: {
-                    validateIndentation: 4
-                }
+        eslint: {
+            source: {
+                src: [
+                    '<%= conf.src %>/**/*.js',
+                    '!<%= conf.src %>/{banner,footer,d3v3-compat}.js',
+                    '<%= conf.spec %>/**/*.js',
+                    'Gruntfile.js'
+                ],
             },
-            source: {
-                src: ['<%= conf.src %>/**/*.js', '!<%= conf.src %>/{banner,footer}.js', 'Gruntfile.js',
-                    'grunt/*.js', '<%= conf.web %>/stock.js'],
-                options: {
-                    config: '.jscsrc'
-                }
-            }
-        },
-        jshint: {
-            source: {
-                src: ['<%= conf.src %>/**/*.js', 'Gruntfile.js', 'grunt/*.js', '<%= conf.web %>/stock.js'],
-                options: {
-                    jshintrc: '.jshintrc',
-                    ignores: ['<%= conf.src %>/banner.js', '<%= conf.src %>/footer.js']
-                }
+            options: {
+                configFile: '.eslintrc'
             }
         },
         watch: {
@@ -202,7 +191,7 @@ module.exports = function (grunt) {
     grunt.registerTask('web', ['docs', 'gh-pages']);
     grunt.registerTask('server', ['docs', 'connect:server', 'watch:scripts']);
     grunt.registerTask('test', ['build', 'copy', 'jasmine:specs']);
-    grunt.registerTask('lint', ['build', 'jshint', 'jscs']);
+    grunt.registerTask('lint', ['build', 'eslint:source']);
     grunt.registerTask('default', ['build', 'shell:hooks']);
 };
 
