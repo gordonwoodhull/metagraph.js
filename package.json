@@ -29,7 +29,7 @@
     "grunt-contrib-jasmine": "github:gruntjs/grunt-contrib-jasmine#master",
     "grunt-contrib-uglify-es": "~3.3.0",
     "grunt-contrib-watch": "^1.1.0",
-    "grunt-eslint": "^21.0.0",
+    "grunt-eslint": "^21.1.0",
     "grunt-gh-pages": "^3.1.0",
     "grunt-jsdoc": "^2.4.0",
     "grunt-jsdoc-to-markdown": "github:dc-js/grunt-jsdoc-to-markdown",
@@ -37,7 +37,7 @@
     "ink-docstrap": "~1.3",
     "jsdifflib": "~1.1",
     "load-grunt-tasks": "~3.5",
-    "marked": "^0.6.2",
+    "marked": "^0.6.3",
     "time-grunt": "~1.4",
     "uglify-js": "~2.7"
   },
