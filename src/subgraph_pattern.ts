@@ -12,6 +12,20 @@ const graph_options = <N = any, E = any>(opts?: Partial<GraphOptions<N, E>>): Gr
     edgeTarget: (kv: any) => kv.value.target
   }, opts || {});
 
+/**
+ * Creates a subgraph pattern specification for filtering parent graphs.
+ * Enables creation of subgraphs by selecting subsets of nodes and edges from parent graphs.
+ * 
+ * @param opts - Optional graph options for customizing node/edge accessors
+ * @returns A pattern specification for creating subgraph functionality
+ * 
+ * @example
+ * ```typescript
+ * // Used in composed patterns to enable subgraph operations
+ * const subPat = subgraph_pattern();
+ * // Results in parent.subgraph(['nodeA', 'nodeB'], ['edge1'], data)
+ * ```
+ */
 export const subgraph_pattern = (opts?: any) => {
   const options = graph_options(opts);
   return {

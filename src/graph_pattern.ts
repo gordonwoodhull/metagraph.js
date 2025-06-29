@@ -12,6 +12,23 @@ const graph_options = <N = any, E = any>(opts?: Partial<GraphOptions<N, E>>): Gr
     edgeTarget: (kv: any) => kv.value.target
   }, opts || {});
 
+/**
+ * Creates a standard graph pattern specification for building graph instances.
+ * Defines the dataflow computation and interface for creating graph objects with nodes and edges.
+ * 
+ * @param opts - Optional graph options for customizing node/edge accessors
+ * @returns A pattern specification that can create graph instances
+ * 
+ * @example
+ * ```typescript
+ * // Create a graph pattern and use it to build a graph
+ * const pat = pattern(graph_pattern());
+ * const myGraph = pat.node('Graph').value().create({
+ *   nodes: [{key: 'a'}, {key: 'b'}],
+ *   edges: [{key: 'edge', value: {source: 'a', target: 'b'}}]
+ * });
+ * ```
+ */
 export const graph_pattern = (opts?: any) => {
   const options = graph_options(opts);
   return {
