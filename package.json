@@ -18,12 +18,8 @@
     "type": "git",
     "url": "https://github.com/gordonwoodhull/metagraph.js.git"
   },
-  "dependencies": {},
   "devDependencies": {
     "@rollup/plugin-typescript": "^11.1.6",
-    "rollup": "^4.9.6",
-    "typescript": "^5.3.3",
-    "vitest": "^1.2.0",
     "grunt": "^1.0.4",
     "grunt-browserify": "^5.3.0",
     "grunt-cli": "~1.2",
@@ -42,8 +38,11 @@
     "jsdifflib": "~1.1",
     "load-grunt-tasks": "~3.5",
     "marked": "^0.7.0",
+    "rollup": "^4.44.1",
     "time-grunt": "~1.4",
-    "uglify-js": "~2.7"
+    "typescript": "^5.8.3",
+    "uglify-js": "~2.7",
+    "vitest": "^1.6.1"
   },
   "scripts": {
     "build": "rollup -c",

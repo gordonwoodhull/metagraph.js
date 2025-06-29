@@ -1,4 +1,4 @@
-import { PatternSpec, PatternDefinition, Graph, DataflowInstance } from './types.js';
+import { PatternSpec, PatternDefinition, Graph, DataflowInstance, KeyValue, Node } from './types.js';
 import { as_array, as_keyvalue } from './core.js';
 import { graph_detect } from './graph.js';
 import { dataflow } from './dataflow.js';
@@ -57,11 +57,11 @@ export const pattern = (spec: PatternSpec, flowspecs?: Record<string, Graph>): G
     const fs = flowspec || flowspecs?.[nkey.split('.')[0]];
     
     as_array(inode.value()).forEach((spec: any) => {
-      as_keyvalue(spec.class_members).forEach(cmemspec => {
-        defn.node[nkey].class_members[cmemspec.key] = cmemspec.value(fs, inode);
+      as_keyvalue(spec.class_members).forEach((cmemspec: any) => {
+        defn.node[nkey].class_members[cmemspec.key] = cmemspec.value(fs!, inode);
       });
-      as_keyvalue(spec.members).forEach(memspec => {
-        const mem = memspec.value(fs, inode);
+      as_keyvalue(spec.members).forEach((memspec: any) => {
+        const mem = memspec.value(fs!, inode);
         defn.node[nkey].members[memspec.key] = {
           accessor: mem.accessor,
           defn: mem.defn

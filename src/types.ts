@@ -93,6 +93,6 @@ export interface ClassMemberSpec {
 }
 
 export interface NodeSpec {
-  members?: MemberSpec[];
-  class_members?: ClassMemberSpec[];
+  members?: KeyValue<string, (flowspec: Graph, inode: Node) => MemberSpec>[];
+  class_members?: KeyValue<string, (flowspec: Graph, inode: Node) => ClassMemberSpec>[];
 }
