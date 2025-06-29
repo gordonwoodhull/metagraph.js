@@ -1,4 +1,4 @@
-import { KeyValue, GraphOptions, Node, Edge, Graph, IncidenceOptions, GraphSpec } from './types.js';
+import { KeyValue, GraphOptions, Node, Edge, Graph, IncidenceOptions, GraphSpec, EdgeSourceTarget, NodeWithIncidences } from './types.js';
 import { as_array, as_keyvalue, build_map } from './core.js';
 
 function graph_options<N = any, E = any>(opts?: Partial<GraphOptions<N, E>>): GraphOptions<N, E> {
@@ -7,8 +7,8 @@ function graph_options<N = any, E = any>(opts?: Partial<GraphOptions<N, E>>): Gr
     edgeKey: (kv: KeyValue<string, E>) => kv.key,
     nodeValue: (kv: KeyValue<string, N>) => kv.value,
     edgeValue: (kv: KeyValue<string, E>) => kv.value,
-    edgeSource: (kv: KeyValue<string, E>) => (kv.value as any).source,
-    edgeTarget: (kv: KeyValue<string, E>) => (kv.value as any).target
+    edgeSource: (kv: KeyValue<string, E>) => (kv.value as EdgeSourceTarget).source,
+    edgeTarget: (kv: KeyValue<string, E>) => (kv.value as EdgeSourceTarget).target
   }, opts || {});
 }
 
@@ -194,10 +194,10 @@ export function graph<N = any, E = any>(
 function incidence_options<N = any>(opts?: Partial<IncidenceOptions<N>>): IncidenceOptions<N> {
   const gropts = graph_options(opts);
   return Object.assign({
-    nodeIncidences: (n: N) => n && ((n as any).edges || (n as any).ins || (n as any).outs) || [],
+    nodeIncidences: (n: N) => n && ((n as NodeWithIncidences).edges || (n as NodeWithIncidences).ins || (n as NodeWithIncidences).outs) || [],
     incidencesOutward: (n: KeyValue<string, N>) => {
       const v = gropts.nodeValue!(n);
-      return !v || !!((v as any).edges || (v as any).outs);
+      return !v || !!((v as NodeWithIncidences).edges || (v as NodeWithIncidences).outs);
     }
   }, gropts);
 }
@@ -226,9 +226,9 @@ export function graph_incidence<N = any>(
 ): Graph<N> {
   const nodesList = as_keyvalue(nodes);
   const options = incidence_options(opts);
-  const edges: KeyValue<string, any>[] = [];
+  const edges: KeyValue<string, EdgeSourceTarget>[] = [];
 
-  function edge_value(outward: boolean, nk: string, ik: string): { source: string; target: string } {
+  function edge_value(outward: boolean, nk: string, ik: string): EdgeSourceTarget {
     return outward ? {
       source: nk,
       target: ik

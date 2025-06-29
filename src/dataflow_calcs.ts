@@ -1,4 +1,4 @@
-import { DataflowNode, PatternDefinition, DataflowInstance } from './types.js';
+import { DataflowNode, PatternDefinition, DataflowInstance, Graph, Node } from './types.js';
 import { as_array, build_map } from './core.js';
 
 /**
@@ -17,7 +17,7 @@ import { as_array, build_map } from './core.js';
  * ```
  */
 export const input = (path?: string) => ({
-  calc: (fnode: any) => {
+  calc: (fnode: Node) => {
     const actualPath = path || fnode.key();
     const parts = actualPath.split('.');
     const [namespace, name] = parts.length > 1 ? parts : ['data', actualPath];
@@ -35,7 +35,7 @@ export const input = (path?: string) => ({
  * @returns A dataflow node specification that passes through input data
  */
 export const output = (name?: string, namespace?: string) => ({
-  calc: (fnode: any) => (defn: PatternDefinition) => (flow: DataflowInstance) => (x: any) => x
+  calc: (fnode: Node) => (defn: PatternDefinition) => (flow: DataflowInstance) => (x: unknown) => x
 });
 
 /**
@@ -51,12 +51,12 @@ export const output = (name?: string, namespace?: string) => ({
  * ```
  */
 export const map = () => ({
-  calc: (fnode: any) => {
+  calc: (fnode: Node) => {
     const iref = as_array(fnode.value().refs)[0];
-    return (defn: PatternDefinition) => (flow: DataflowInstance) => (data: any[]) =>
+    return (defn: PatternDefinition) => (flow: DataflowInstance) => (data: unknown[]) =>
       build_map(
         data,
-        defn.node[iref].members.key.accessor,
+        defn.node[iref].members.key.accessor as (val: unknown) => string,
         defn.node[iref].wrap.bind(null, flow)
       );
   }
@@ -70,7 +70,7 @@ export const map = () => ({
  * @throws Error when accessed before proper initialization
  */
 export const singleton = () => ({
-  calc: (fnode: any) => (defn: PatternDefinition) => (flow: DataflowInstance) => () => {
+  calc: (fnode: Node) => (defn: PatternDefinition) => (flow: DataflowInstance) => () => {
     throw new Error('singleton not initialized');
   }
 });
@@ -88,10 +88,10 @@ export const singleton = () => ({
  * ```
  */
 export const list = () => ({
-  calc: (fnode: any) => {
+  calc: (fnode: Node) => {
     const iref = as_array(fnode.value().refs)[0];
-    return (defn: PatternDefinition) => (flow: DataflowInstance) => (data: any[], map: Record<string, any>) =>
-      data.map(val => map[defn.node[iref].members.key.accessor(val)]);
+    return (defn: PatternDefinition) => (flow: DataflowInstance) => (data: unknown[], map: Record<string, unknown>) =>
+      data.map(val => map[(defn.node[iref].members.key.accessor as (val: unknown) => string)(val)]);
   }
 });
 
@@ -109,15 +109,15 @@ export const list = () => ({
  * // Result: {nodeA: [edge1, edge2], nodeB: [edge3], ...}
  * ```
  */
-export const map_of_lists = (accessor: (val: any) => string) => ({
-  calc: (fnode: any) => (defn: PatternDefinition) => (flow: DataflowInstance) => (data: any[], map: Record<string, any>) => {
-    const iref = as_array(fnode.value().refs)[0];
-    return data.reduce((o, v) => {
+export const map_of_lists = (accessor: (val: unknown) => string) => ({
+  calc: (fnode: Node) => (defn: PatternDefinition) => (flow: DataflowInstance) => (data: unknown[], map: Record<string, unknown>) => {
+    const iref = as_array((fnode.value() as {refs?: string | string[]}).refs)[0];
+    return data.reduce((o: Record<string, unknown[]>, v) => {
       const key = accessor(v);
       const list = o[key] = o[key] || [];
-      list.push(map[defn.node[iref].members.key.accessor(v)]);
+      list.push(map[(defn.node[iref].members.key.accessor as (val: unknown) => string)(v)]);
       return o;
-    }, {} as Record<string, any[]>);
+    }, {} as Record<string, unknown[]>);
   }
 });
 
@@ -134,11 +134,11 @@ export const map_of_lists = (accessor: (val: any) => string) => ({
  * ```
  */
 export const subset = () => ({
-  calc: (fnode: any) => {
+  calc: (fnode: Node) => {
     const iref = as_array(fnode.value().refs)[0];
-    return (defn: PatternDefinition) => (flow: DataflowInstance) => (items: any[], keys: string[]) => {
+    return (defn: PatternDefinition) => (flow: DataflowInstance) => (items: unknown[], keys: string[]) => {
       const keySet = new Set(keys);
-      return items.filter(r => keySet.has(defn.node[iref].members.key.accessor(r)));
+      return items.filter(r => keySet.has((defn.node[iref].members.key.accessor as (val: unknown) => string)(r)));
     };
   }
 });

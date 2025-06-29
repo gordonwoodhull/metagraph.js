@@ -1,4 +1,4 @@
-import { PatternSpec, PatternDefinition, Graph, DataflowInstance, KeyValue, Node } from './types.js';
+import { PatternSpec, PatternDefinition, Graph, DataflowInstance, KeyValue, Node, FlowFunction } from './types.js';
 import { as_array, as_keyvalue } from './core.js';
 import { graph_detect } from './graph.js';
 import { dataflow } from './dataflow.js';
@@ -29,22 +29,22 @@ export const pattern = (spec: PatternSpec, flowspecs?: Record<string, Graph>): G
     defn.node[inode.key()] = {
       members: {},
       class_members: {},
-      wrap: (flow: DataflowInstance, val: any) => {
-        const wrapper: any = {};
+      wrap: (flow: DataflowInstance, val: unknown) => {
+        const wrapper: Record<string, unknown> = {};
         const members = defn.node[inode.key()].members;
         Object.keys(members).forEach(name => {
-          wrapper[name] = members[name].defn(defn, flow, val);
+          wrapper[name] = members[name].defn!(defn, flow, val);
         });
         return wrapper;
       }
     };
   });
 
-  const resolve = (deps: string[], funfun: any) => 
-    (defn: PatternDefinition, flow: DataflowInstance, val: any) => {
+  const resolve = (deps: string[], funfun: FlowFunction) => 
+    (defn: PatternDefinition, flow: DataflowInstance, val: unknown) => {
       const action = funfun(defn, flow, val);
-      return (...args: any[]) => 
-        action.apply(null, deps.map(dep => {
+      return (...args: unknown[]) => 
+        (action as Function).apply(null, deps.map(dep => {
           const parts = dep.split('.');
           if (parts.length > 1) {
             return flow.input(parts[0], parts[1]);
@@ -56,15 +56,15 @@ export const pattern = (spec: PatternSpec, flowspecs?: Record<string, Graph>): G
 
   interf.edges().forEach(iedge => {
     const ekey = iedge.key();
-    const evalue = iedge.value() as any;
+    const evalue = iedge.value() as Record<string, unknown>;
     const fs = flowspec || flowspecs?.[ekey.split('.')[0]];
-    const action = evalue.member;
+    const action = (evalue as {member?: {funfun?: Function}}).member;
     
     if (action && action.funfun) {
-      const funfun = action.funfun(fs, iedge, flowspecs);
-      const deps = as_array(evalue.deps);
+      const funfun = action.funfun!(fs, iedge, flowspecs);
+      const deps = as_array((evalue as {deps?: string | string[]}).deps);
       const resolvedFunfun = resolve(deps, funfun);
-      defn.node[iedge.source().key()].members[evalue.name] = { defn: resolvedFunfun };
+      defn.node[iedge.source().key()].members[(evalue as {name: string}).name] = { defn: resolvedFunfun };
     }
   });
 
@@ -73,12 +73,12 @@ export const pattern = (spec: PatternSpec, flowspecs?: Record<string, Graph>): G
     const nvalue = inode.value();
     const fs = flowspec || flowspecs?.[nkey.split('.')[0]];
     
-    as_array(inode.value()).forEach((spec: any) => {
-      as_keyvalue(spec.class_members).forEach((cmemspec: any) => {
-        defn.node[nkey].class_members[cmemspec.key] = cmemspec.value(fs!, inode);
+    as_array(inode.value()).forEach((spec: Record<string, unknown>) => {
+      as_keyvalue((spec as {class_members?: Record<string, unknown>}).class_members).forEach((cmemspec: KeyValue) => {
+        defn.node[nkey].class_members[cmemspec.key] = (cmemspec.value as Function)(fs!, inode);
       });
-      as_keyvalue(spec.members).forEach((memspec: any) => {
-        const mem = memspec.value(fs!, inode);
+      as_keyvalue((spec as {members?: Record<string, unknown>}).members).forEach((memspec: KeyValue) => {
+        const mem = (memspec.value as Function)(fs!, inode);
         defn.node[nkey].members[memspec.key] = {
           accessor: mem.accessor,
           defn: mem.defn
@@ -88,10 +88,10 @@ export const pattern = (spec: PatternSpec, flowspecs?: Record<string, Graph>): G
   });
 
   const inodes2 = interf.nodes().map(n => {
-    const n2: any = { key: n.key(), value: {} };
+    const n2: KeyValue = { key: n.key(), value: {} as Record<string, unknown> };
     const class_members = defn.node[n.key()].class_members;
     Object.keys(class_members).forEach(name => {
-      n2.value[name] = class_members[name].defn(defn);
+      (n2.value as Record<string, unknown>)[name] = class_members[name].defn(defn);
     });
     return n2;
   });

@@ -58,12 +58,12 @@ export const graph_pattern = (opts?: any) => {
           ins: ['edges', 'edge_by_key']
         },
         node_outs: {
-          node: map_of_lists(options.edgeSource!),
+          node: map_of_lists(options.edgeSource! as (val: unknown) => string),
           refs: 'Node',
           ins: ['edges', 'edge_by_key']
         },
         node_ins: {
-          node: map_of_lists(options.edgeTarget!),
+          node: map_of_lists(options.edgeTarget! as (val: unknown) => string),
           refs: 'Node',
           ins: ['edges', 'edge_by_key']
         }
@@ -72,8 +72,8 @@ export const graph_pattern = (opts?: any) => {
     interface: {
       nodes: {
         Graph: createable('graph'),
-        Node: [call('key')(options.nodeKey!), call('value')(options.nodeValue!)],
-        Edge: [call('key')(options.edgeKey!), call('value')(options.edgeValue!)]
+        Node: [call('key')(options.nodeKey! as (val: unknown) => unknown), call('value')(options.nodeValue! as (val: unknown) => unknown)],
+        Edge: [call('key')(options.edgeKey! as (val: unknown) => unknown), call('value')(options.edgeValue! as (val: unknown) => unknown)]
       },
       edges: {
         graph_node: {
@@ -116,13 +116,13 @@ export const graph_pattern = (opts?: any) => {
           name: 'source',
           source: 'Edge', target: 'Node',
           deps: 'node_by_key',
-          member: lookupFVal(options.edgeSource!)
+          member: lookupFVal(options.edgeSource! as (val: unknown) => unknown)
         },
         edge_target: {
           name: 'target',
           source: 'Edge', target: 'Node',
           deps: 'node_by_key',
-          member: lookupFVal(options.edgeTarget!)
+          member: lookupFVal(options.edgeTarget! as (val: unknown) => unknown)
         },
         node_outs: {
           name: 'outs',

@@ -1,4 +1,4 @@
-import { InterfaceSpec, PatternDefinition, DataflowInstance, Graph, Edge, Node } from './types.js';
+import { InterfaceSpec, PatternDefinition, DataflowInstance, Graph, Edge, Node, FlowFunction } from './types.js';
 import { as_array } from './core.js';
 import { define_dataflow } from './pattern.js';
 
@@ -20,10 +20,10 @@ export const createable = (flowkey: string) => ({
     create: (flowspec: Graph, inode: Node) => ({
       defn: (defn: PatternDefinition) => {
         const flowg = define_dataflow(flowspec, defn);
-        return (data: any) => {
-          const env: any = {};
+        return (data: unknown) => {
+          const env: Record<string, unknown> = {};
           const flow = flowg.instantiate(env, { data });
-          env[flowkey] = defn.node[inode.key()].wrap(flow, data[inode.key()]);
+          env[flowkey] = defn.node[inode.key()].wrap(flow, (data as Record<string, unknown>)[inode.key()]);
           return env[flowkey];
         };
       }
@@ -45,12 +45,12 @@ export const createable = (flowkey: string) => ({
  * const valueMethod = call('value')(obj => obj.value);
  * ```
  */
-export const call = (methodname: string) => (f: (val: any) => any) => ({
+export const call = (methodname: string) => (f: (val: unknown) => unknown) => ({
   members: [{
     key: methodname,
     value: (flowspec: Graph, inode: Node) => ({
       accessor: f,
-      defn: (defn: PatternDefinition, flow: DataflowInstance, val: any) => () => f(val)
+      defn: (defn: PatternDefinition, flow: DataflowInstance, val: unknown) => () => f(val)
     })
   }]
 });
@@ -85,7 +85,7 @@ export const reference = (inode: Node) => ({
 export const fetch = () => ({
   funfun: (flowspec: Graph, iedge: Edge) => 
     (defn: PatternDefinition, flow: DataflowInstance) => 
-      (x: any) => () => x
+      (x: unknown) => () => x
 });
 
 /**
@@ -104,12 +104,12 @@ export const fetch = () => ({
  * const idLookup = lookupArg(key => key.id);
  * ```
  */
-export const lookupArg = (access?: (x: any) => any) => ({
+export const lookupArg = (access?: (x: unknown) => unknown) => ({
   funfun: (flowspec: Graph, iedge: Edge) => {
-    const accessor = access || ((x: any) => x);
-    return (defn: PatternDefinition, flow: DataflowInstance, val: any) => 
-      (map: Record<string, any>) => 
-        (key: any) => map[accessor(key)];
+    const accessor = access || ((x: unknown) => x);
+    return (defn: PatternDefinition, flow: DataflowInstance, val: unknown) => 
+      (map: Record<string, unknown>) => 
+        (key: unknown) => map[accessor(key) as string];
   }
 });
 
@@ -126,10 +126,10 @@ export const lookupArg = (access?: (x: any) => any) => ({
  * const sourceLookup = lookupFVal(edge => edge.source);
  * ```
  */
-export const lookupFVal = (access: (val: any) => any) => ({
+export const lookupFVal = (access: (val: unknown) => unknown) => ({
   funfun: (flowspec: Graph, iedge: Edge) =>
-    (defn: PatternDefinition, flow: DataflowInstance, val: any) =>
-      (map: Record<string, any>) => () => map[access(val)]
+    (defn: PatternDefinition, flow: DataflowInstance, val: unknown) =>
+      (map: Record<string, unknown>) => () => map[access(val) as string]
 });
 
 /**
@@ -146,9 +146,9 @@ export const lookupFVal = (access: (val: any) => any) => ({
  */
 export const lookupKVal = () => ({
   funfun: (flowspec: Graph, iedge: Edge) =>
-    (defn: PatternDefinition, flow: DataflowInstance, val: any) =>
-      (map: Record<string, any>) => () =>
-        map[defn.node[iedge.source().key()].members.key.accessor(val)] || []
+    (defn: PatternDefinition, flow: DataflowInstance, val: unknown) =>
+      (map: Record<string, unknown>) => () =>
+        map[(defn.node[iedge.source().key()].members.key.accessor as (val: unknown) => string)(val)] || []
 });
 
 /**
@@ -165,7 +165,7 @@ export const lookupKVal = () => ({
  */
 export const subgraph = () => ({
   funfun: (flowspec: Graph, iedge: Edge, flowspecs?: Record<string, Graph>) =>
-    (defn: PatternDefinition, flow: DataflowInstance, val: any) => {
+    (defn: PatternDefinition, flow: DataflowInstance, val: unknown) => {
       const subflow = define_dataflow(flowspec, defn);
       let graflow = subflow;
       const parts = iedge.target().key().split('.');
@@ -173,7 +173,7 @@ export const subgraph = () => ({
         const dest = parts[0];
         graflow = define_dataflow(flowspecs![dest], defn);
       }
-      return () => (nodeKeys: string[], edgeKeys: string[], gdata: any) => {
+      return () => (nodeKeys: string[], edgeKeys: string[], gdata: unknown) => {
         const sgflow = subflow.instantiate({}, {
           data: {
             nodeKeys,
@@ -181,7 +181,7 @@ export const subgraph = () => ({
           },
           parent: flow
         });
-        const genv: any = {};
+        const genv: Record<string, unknown> = {};
         const gflow = graflow.instantiate(genv, {
           data: sgflow
         });

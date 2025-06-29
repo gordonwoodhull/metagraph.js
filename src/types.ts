@@ -48,16 +48,16 @@ export interface GraphSpec<N = any, E = any> {
 
 export interface DataflowInstance {
   _yes_i_am_really_dataflow: boolean;
-  calc(id: string): any;
-  input(namespace: string, field: string): any;
+  calc(id: string): unknown;
+  input(namespace: string, field: string): unknown;
 }
 
 export interface DataflowNode {
-  calc: (instance: DataflowInstance) => (...args: any[]) => any;
+  calc: (instance: DataflowInstance) => FlowFunction;
 }
 
 export interface Dataflow {
-  instantiate(instance: Record<string, any>, inputs: Record<string, any>): DataflowInstance;
+  instantiate(instance: Record<string, unknown>, inputs: Record<string, unknown>): DataflowInstance;
 }
 
 export interface PatternSpec {
@@ -66,17 +66,13 @@ export interface PatternSpec {
 }
 
 export interface PatternDefinition {
-  node: Record<string, {
-    members: Record<string, any>;
-    class_members: Record<string, any>;
-    wrap: (flow: DataflowInstance, val: any) => any;
-  }>;
-  edge: Record<string, any>;
+  node: Record<string, PatternNodeDefinition>;
+  edge: Record<string, PatternEdgeDefinition>;
 }
 
 export interface InterfaceSpec {
   funfun?: (flowspec: Graph, iedge: Edge, flowspecs?: Record<string, Graph>) => 
-    (defn: PatternDefinition, flow: DataflowInstance, val: any) => (...args: any[]) => any;
+    (defn: PatternDefinition, flow: DataflowInstance, val: unknown) => FlowFunction;
   reference?: Node;
   member?: InterfaceSpec;
   name?: string;
@@ -84,15 +80,85 @@ export interface InterfaceSpec {
 }
 
 export interface MemberSpec {
-  accessor?: (val: any) => any;
-  defn?: (defn: PatternDefinition, flow: DataflowInstance, val: any) => (...args: any[]) => any;
+  accessor?: (val: unknown) => unknown;
+  defn?: (defn: PatternDefinition, flow: DataflowInstance, val: unknown) => FlowFunction;
 }
 
 export interface ClassMemberSpec {
-  defn: (defn: PatternDefinition) => any;
+  defn: (defn: PatternDefinition) => unknown;
 }
 
 export interface NodeSpec {
   members?: KeyValue<string, (flowspec: Graph, inode: Node) => MemberSpec>[];
   class_members?: KeyValue<string, (flowspec: Graph, inode: Node) => ClassMemberSpec>[];
+}
+
+// Additional type definitions for better type safety
+export interface EdgeSourceTarget {
+  source: string;
+  target: string;
+}
+
+export interface NodeWithIncidences {
+  edges?: string[];
+  ins?: string[];
+  outs?: string[];
+}
+
+export interface DataflowNodeSpec {
+  node: DataflowNodeValue<unknown>;
+  refs?: string;
+  ins?: string | string[];
+}
+
+export interface DataflowNodeValue<T> {
+  calc: (instance: DataflowInstance) => (...args: unknown[]) => T;
+}
+
+export interface PatternNodeDefinition {
+  members: Record<string, MemberSpec>;
+  class_members: Record<string, ClassMemberSpec>;
+  wrap: (flow: DataflowInstance, val: unknown) => unknown;
+}
+
+export interface PatternEdgeDefinition {
+  source: string;
+  target: string;
+  name?: string;
+  deps?: string | string[];
+  member?: InterfaceSpec;
+  funfun?: InterfaceSpec['funfun'];
+}
+
+export interface FlowFunction<TInput = unknown, TOutput = unknown> {
+  (...args: TInput[]): TOutput;
+}
+
+// Type guards for runtime validation
+export function isKeyValue(obj: unknown): obj is KeyValue {
+  return typeof obj === 'object' && obj !== null && 
+         'key' in obj && 'value' in obj;
+}
+
+export function isGraphSpec(obj: unknown): obj is GraphSpec {
+  return typeof obj === 'object' && obj !== null &&
+         ('nodes' in obj || 'edges' in obj || 'incidences' in obj);
+}
+
+export function hasSourceTarget(obj: unknown): obj is EdgeSourceTarget {
+  return typeof obj === 'object' && obj !== null &&
+         'source' in obj && 'target' in obj &&
+         typeof (obj as EdgeSourceTarget).source === 'string' &&
+         typeof (obj as EdgeSourceTarget).target === 'string';
+}
+
+export function isDataflowInstance(obj: unknown): obj is DataflowInstance {
+  return typeof obj === 'object' && obj !== null &&
+         '_yes_i_am_really_dataflow' in obj &&
+         (obj as DataflowInstance)._yes_i_am_really_dataflow === true;
+}
+
+export function isNodeWithIncidences(obj: unknown): obj is NodeWithIncidences {
+  return typeof obj === 'object' && obj !== null &&
+         ('edges' in obj || 'ins' in obj || 'outs' in obj);
 }
