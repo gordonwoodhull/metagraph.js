@@ -12,6 +12,8 @@
  * - **Graph Patterns**: Reusable templates for creating graph instances
  * - **Pattern Composition**: Combine multiple patterns into complex structures
  * - **Topological Sorting**: DAG ordering algorithms
+ * - **🆕 Template Literal Types**: Type-safe path navigation with compile-time validation
+ * - **🆕 Enhanced Type Safety**: Comprehensive TypeScript interfaces and type guards
  * 
  * ## Basic Usage
  * 
@@ -30,6 +32,13 @@
  *   nodes: [{key: 'x'}, {key: 'y'}],
  *   edges: [{key: 'connection', value: {source: 'x', target: 'y'}}]
  * });
+ * 
+ * // 🆕 Type-safe path navigation
+ * import { createTypedGraph, path } from 'metagraph';
+ * 
+ * const typedGraph = createTypedGraph(g);
+ * const nodeValue = typedGraph.path('user.profile.email'); // Type-safe!
+ * const safePath = path().extend('user').extend('settings').build();
  * ```
  * 
  * @packageDocumentation
@@ -46,6 +55,7 @@ export { createable, call, reference, fetch, lookupArg, lookupFVal, lookupKVal, 
 export { input, output, map, singleton, list, map_of_lists, subset } from './dataflow_calcs.js';
 export { graph_pattern } from './graph_pattern.js';
 export { subgraph_pattern } from './subgraph_pattern.js';
+export { createTypedGraph, PathBuilder, path } from './typed-graph.js';
 
 // For backward compatibility, also export graph as graph_adjacency
 export { graph as graph_adjacency } from './graph.js';

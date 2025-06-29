@@ -33,6 +33,10 @@ export interface Graph<N = any, E = any> {
   edge(key: string): Edge<E> | undefined;
   nodes(): Node<N>[];
   edges(): Edge<E>[];
+  // Optional path navigation methods (implemented by TypedGraph)
+  path?<P extends string>(path: P): unknown;
+  navigate?<P extends string>(path: P): unknown;
+  hasPath?<P extends string>(path: P): boolean;
 }
 
 export interface IncidenceOptions<N = any> extends GraphOptions<N> {
@@ -161,4 +165,45 @@ export function isDataflowInstance(obj: unknown): obj is DataflowInstance {
 export function isNodeWithIncidences(obj: unknown): obj is NodeWithIncidences {
   return typeof obj === 'object' && obj !== null &&
          ('edges' in obj || 'ins' in obj || 'outs' in obj);
+}
+
+// Template literal types for graph paths
+export type Split<S extends string, D extends string> = 
+  S extends `${infer T}${D}${infer U}` ? [T, ...Split<U, D>] : [S];
+
+export type Join<T extends readonly string[], D extends string> = 
+  T extends readonly [infer F, ...infer R]
+    ? F extends string
+      ? R extends readonly string[]
+        ? R['length'] extends 0
+          ? F
+          : `${F}${D}${Join<R, D>}`
+        : never
+      : never
+    : '';
+
+export type GraphPath<T extends string> = 
+  T extends `${infer Start}.${infer Rest}` 
+    ? Start | GraphPath<Rest> 
+    : T;
+
+// Type-safe path resolution for known graph structures
+export type PathValue<G, P extends string> = 
+  P extends `${infer NodeKey}.${infer Rest}`
+    ? NodeKey extends keyof G
+      ? G[NodeKey] extends { value: infer V }
+        ? Rest extends keyof V
+          ? V[Rest]
+          : never
+        : never
+      : never
+    : P extends keyof G
+      ? G[P]
+      : never;
+
+// Enhanced graph interface with path navigation
+export interface TypedGraph<N = any, E = any> extends Graph<N, E> {
+  path<P extends string>(path: P): unknown;
+  navigate<P extends string>(path: P): unknown;
+  hasPath<P extends string>(path: P): boolean;
 }
