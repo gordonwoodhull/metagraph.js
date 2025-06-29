@@ -3,6 +3,23 @@ import { as_array, as_keyvalue } from './core.js';
 import { graph_detect } from './graph.js';
 import { dataflow } from './dataflow.js';
 
+/**
+ * Creates a reusable graph pattern that can generate graph instances from data.
+ * Patterns define the structure and behavior of graphs through dataflow and interface specifications.
+ * 
+ * @param spec - Pattern specification containing dataflow computation and interface definition
+ * @param flowspecs - Optional additional flowspecs for composed patterns
+ * @returns A pattern graph that can create instances via the 'create' method
+ * 
+ * @example
+ * ```typescript
+ * const graphPattern = pattern(graph_pattern());
+ * const instance = graphPattern.node('Graph').value().create({
+ *   nodes: [{key: 'a'}, {key: 'b'}],
+ *   edges: [{key: 'e', value: {source: 'a', target: 'b'}}]
+ * });
+ * ```
+ */
 export const pattern = (spec: PatternSpec, flowspecs?: Record<string, Graph>): Graph => {
   const flowspec = spec.dataflow && graph_detect(spec.dataflow);
   const interf = graph_detect(spec.interface);

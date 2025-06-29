@@ -1,3 +1,40 @@
+/**
+ * # Metagraph.js
+ * 
+ * A TypeScript library for building higher-order graph data structures with composable patterns,
+ * lazy evaluation, and dataflow computation capabilities.
+ * 
+ * ## Core Features
+ * 
+ * - **Graph Data Structures**: Adjacency and incidence list representations
+ * - **Lazy Evaluation**: On-demand computation of graph properties
+ * - **Dataflow Graphs**: Computation graphs with dependency resolution
+ * - **Graph Patterns**: Reusable templates for creating graph instances
+ * - **Pattern Composition**: Combine multiple patterns into complex structures
+ * - **Topological Sorting**: DAG ordering algorithms
+ * 
+ * ## Basic Usage
+ * 
+ * ```typescript
+ * import { graph, pattern, graph_pattern } from 'metagraph';
+ * 
+ * // Create a simple graph
+ * const g = graph(
+ *   [{key: 'a'}, {key: 'b'}],
+ *   [{key: 'edge', value: {source: 'a', target: 'b'}}]
+ * );
+ * 
+ * // Create a graph using patterns
+ * const graphPat = pattern(graph_pattern());
+ * const instance = graphPat.node('Graph').value().create({
+ *   nodes: [{key: 'x'}, {key: 'y'}],
+ *   edges: [{key: 'connection', value: {source: 'x', target: 'y'}}]
+ * });
+ * ```
+ * 
+ * @packageDocumentation
+ */
+
 // Re-export everything from individual modules
 export { version } from './core.js';
 export { graph, graph_incidence, graph_detect } from './graph.js';

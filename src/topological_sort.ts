@@ -1,5 +1,24 @@
 import { Graph, Node } from './types.js';
 
+/**
+ * Performs a topological sort on a directed acyclic graph (DAG).
+ * Returns nodes in an order where all dependencies come before dependents.
+ * 
+ * @param graph - The directed graph to sort (must be acyclic)
+ * @returns Array of nodes in topological order
+ * @throws Error if the graph contains cycles (is not a DAG)
+ * 
+ * @example
+ * ```typescript
+ * const g = graph(
+ *   [{key: 'a'}, {key: 'b'}, {key: 'c'}],
+ *   [{key: 'e1', value: {source: 'a', target: 'b'}}, 
+ *    {key: 'e2', value: {source: 'b', target: 'c'}}]
+ * );
+ * const sorted = topological_sort(g);
+ * console.log(sorted.map(n => n.key())); // ['a', 'b', 'c']
+ * ```
+ */
 export function topological_sort<N = any>(graph: Graph<N>): Node<N>[] {
   // https://en.wikipedia.org/wiki/Topological_sorting#Depth-first_search
   const stacked: Record<string, boolean> = {};

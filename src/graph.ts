@@ -161,6 +161,24 @@ class GraphImpl<N = any, E = any> implements Graph<N, E> {
   }
 }
 
+/**
+ * Creates a graph data structure from nodes and edges with adjacency list representation.
+ * Supports lazy evaluation and custom accessor functions for flexible data formats.
+ * 
+ * @param nodes - Array of node objects or key-value record of nodes
+ * @param edges - Array of edge objects or key-value record of edges
+ * @param opts - Optional configuration for accessing node/edge properties
+ * @returns A graph instance with nodes and edges
+ * 
+ * @example
+ * ```typescript
+ * const g = graph(
+ *   [{key: 'a'}, {key: 'b'}],
+ *   [{key: 'e1', value: {source: 'a', target: 'b'}}]
+ * );
+ * console.log(g.node('a').outs().length); // 1
+ * ```
+ */
 export function graph<N = any, E = any>(
   nodes: KeyValue<string, N>[] | Record<string, N> | null | undefined,
   edges: KeyValue<string, E>[] | Record<string, E> | null | undefined,
@@ -184,6 +202,24 @@ function incidence_options<N = any>(opts?: Partial<IncidenceOptions<N>>): Incide
   }, gropts);
 }
 
+/**
+ * Creates a graph from nodes with incidence information (edges defined within node data).
+ * Automatically generates edges based on node incidence properties like 'edges', 'outs', or 'ins'.
+ * 
+ * @param nodes - Array of nodes containing incidence information
+ * @param opts - Optional configuration for accessing node properties and incidence direction
+ * @returns A graph instance with generated edges from incidence data
+ * 
+ * @example
+ * ```typescript
+ * const g = graph_incidence([
+ *   {key: 'a', value: {edges: ['b', 'c']}},
+ *   {key: 'b'},
+ *   {key: 'c'}
+ * ]);
+ * console.log(g.edges().map(e => e.key())); // ['a-b', 'a-c']
+ * ```
+ */
 export function graph_incidence<N = any>(
   nodes: KeyValue<string, N>[] | Record<string, N> | null | undefined,
   opts?: Partial<IncidenceOptions<N>>
@@ -221,6 +257,29 @@ export function graph_incidence<N = any>(
   return graph(nodesList, edges, opts);
 }
 
+/**
+ * Automatically detects the graph format and creates the appropriate graph instance.
+ * Supports both adjacency format (separate nodes/edges) and incidence format (edges in nodes).
+ * 
+ * @param spec - Graph specification with either nodes/edges or incidences
+ * @param opts - Optional configuration for accessing node/edge properties
+ * @returns A graph instance created using the appropriate format
+ * @throws Error if the graph format is not recognized
+ * 
+ * @example
+ * ```typescript
+ * // Adjacency format
+ * const g1 = graph_detect({
+ *   nodes: [{key: 'a'}],
+ *   edges: [{key: 'e', value: {source: 'a', target: 'b'}}]
+ * });
+ * 
+ * // Incidence format
+ * const g2 = graph_detect({
+ *   incidences: [{key: 'a', value: {edges: ['b']}}]
+ * });
+ * ```
+ */
 export function graph_detect<N = any, E = any>(
   spec: GraphSpec<N, E>,
   opts?: Partial<GraphOptions<N, E>>

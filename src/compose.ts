@@ -4,6 +4,26 @@ import { topological_sort } from './topological_sort.js';
 import { graph_detect } from './graph.js';
 import { pattern } from './pattern.js';
 
+/**
+ * Composes multiple graph patterns into a single unified pattern.
+ * Resolves dependencies between patterns and creates a combined interface.
+ * 
+ * @param composition - A graph where nodes are patterns and edges define dependencies
+ * @returns A composed pattern that combines all input patterns
+ * 
+ * @example
+ * ```typescript
+ * const comp = compose(graph_detect({
+ *   nodes: {
+ *     graph: graph_pattern(),
+ *     subgraph: subgraph_pattern()
+ *   },
+ *   edges: {
+ *     dependency: {source: 'graph', target: 'subgraph', input: 'parent'}
+ *   }
+ * }));
+ * ```
+ */
 export const compose = (composition: Graph) => {
   const sorted = topological_sort(composition);
   const built: Record<string, Graph> = {};

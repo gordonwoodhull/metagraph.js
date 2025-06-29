@@ -47,6 +47,29 @@ class DataflowImpl implements Dataflow {
   }
 }
 
+/**
+ * Creates a dataflow computation graph for lazy evaluation of dependent calculations.
+ * Nodes represent computations and edges represent data dependencies.
+ * 
+ * @param spec - Graph specification defining the computation nodes and their dependencies
+ * @param options - Optional configuration for graph format
+ * @returns A dataflow instance that can be instantiated with input data
+ * 
+ * @example
+ * ```typescript
+ * const flow = dataflow({
+ *   nodes: [
+ *     {key: 'a'},
+ *     {key: 'sum', calc: (flow) => (a, b) => a + b}
+ *   ],
+ *   edges: [
+ *     {key: 'dep', value: {source: 'a', target: 'sum'}}
+ *   ]
+ * });
+ * const instance = flow.instantiate({sum: 10}, {a: 5});
+ * console.log(instance.calc('sum')); // 15
+ * ```
+ */
 export function dataflow(spec: GraphSpec, options?: any): Dataflow {
   return new DataflowImpl(spec, options);
 }

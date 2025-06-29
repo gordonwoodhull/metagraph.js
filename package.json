@@ -22,6 +22,7 @@
   "devDependencies": {
     "@rollup/plugin-typescript": "^11.1.6",
     "rollup": "^4.44.1",
+    "typedoc": "^0.28.6",
     "typescript": "^5.8.3",
     "vitest": "^1.6.1"
   },
@@ -30,7 +31,9 @@
     "test": "vitest",
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit",
-    "dev": "rollup -c --watch"
+    "dev": "rollup -c --watch",
+    "docs": "typedoc src/index.ts",
+    "docs:serve": "typedoc src/index.ts --watch"
   },
   "npmName": "metagraph",
   "main": "dist/metagraph.js",
