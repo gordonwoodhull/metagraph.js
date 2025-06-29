@@ -12,6 +12,8 @@
  * - **Graph Patterns**: Reusable templates for creating graph instances
  * - **Pattern Composition**: Combine multiple patterns into complex structures
  * - **Topological Sorting**: DAG ordering algorithms
+ * - **🆕 Compile-Time Validation**: Catch graph structure errors at build time
+ * - **🆕 Enhanced Type Safety**: Comprehensive TypeScript interfaces and type guards
  * 
  * ## Basic Usage
  * 
@@ -30,6 +32,14 @@
  *   nodes: [{key: 'x'}, {key: 'y'}],
  *   edges: [{key: 'connection', value: {source: 'x', target: 'y'}}]
  * });
+ * 
+ * // 🆕 Compile-time validated graphs
+ * import { validateGraph, createValidatedGraph } from 'metagraph';
+ * 
+ * const safeGraph = createValidatedGraph({
+ *   nodes: [{key: 'a'}, {key: 'b'}],
+ *   edges: [{key: 'edge', value: {source: 'a', target: 'b'}}]
+ * }); // ✅ Validates structure at compile time!
  * ```
  * 
  * @packageDocumentation
@@ -46,6 +56,23 @@ export { createable, call, reference, fetch, lookupArg, lookupFVal, lookupKVal, 
 export { input, output, map, singleton, list, map_of_lists, subset } from './dataflow_calcs.js';
 export { graph_pattern } from './graph_pattern.js';
 export { subgraph_pattern } from './subgraph_pattern.js';
+export { 
+  validateGraph, 
+  validateGraphWithOptions,
+  createValidatedGraph,
+  getValidationInfo,
+  validateGraphAtRuntime,
+  assertValidGraph
+} from './compile-time-validation.js';
+export type {
+  ValidGraph,
+  ValidatedGraph,
+  GraphValidationError,
+  ValidGraphWithOptions,
+  GraphValidationOptions,
+  CreateValidatedGraph,
+  BrandedGraph
+} from './compile-time-validation.js';
 
 // For backward compatibility, also export graph as graph_adjacency
 export { graph as graph_adjacency } from './graph.js';
