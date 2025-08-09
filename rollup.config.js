@@ -42,7 +42,7 @@ export default [
       })
     ]
   },
-  // ES module build
+  // ES module build (bundled)
   {
     input: 'src/index.ts',
     output: {
@@ -54,9 +54,28 @@ export default [
     plugins: [
       typescript({
         tsconfig: './tsconfig.json',
+        declaration: false,
+        declarationMap: false
+      })
+    ]
+  },
+  // ES modules build (individual modules for tree-shaking)
+  {
+    input: 'src/index.ts',
+    output: {
+      dir: 'dist/esm',
+      format: 'es',
+      banner,
+      sourcemap: true,
+      preserveModules: true,
+      preserveModulesRoot: 'src'
+    },
+    plugins: [
+      typescript({
+        tsconfig: './tsconfig.json',
         declaration: true,
         declarationMap: true,
-        outDir: 'dist'
+        outDir: 'dist/esm'
       })
     ]
   }

@@ -1,6 +1,6 @@
 {
   "name": "metagraph",
-  "version": "0.0.7",
+  "version": "0.1.0",
   "type": "module",
   "license": "MIT",
   "copyright": "2019",
@@ -35,24 +35,17 @@
     "docs": "typedoc src/index.ts",
     "docs:serve": "typedoc src/index.ts --watch"
   },
-  "npmName": "metagraph",
   "main": "dist/metagraph.js",
-  "module": "dist/metagraph.esm.js",
-  "types": "dist/index.d.ts",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/metagraph.js",
+      "types": "./dist/esm/index.d.ts"
+    }
+  },
   "files": [
     "dist/"
-  ],
-  "npmFileMap": [
-    {
-      "basePath": "/",
-      "files": [
-        "dist/metagraph.min.js",
-        "dist/metagraph.min.js.map",
-        "dist/metagraph.js",
-        "dist/metagraph.js.map",
-        "dist/metagraph.esm.js",
-        "dist/metagraph.esm.js.map"
-      ]
-    }
   ]
 }
