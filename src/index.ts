@@ -48,6 +48,7 @@ export { graph_pattern } from './graph_pattern.js';
 export { subgraph_pattern } from './subgraph_pattern.js';
 export { definePattern, makePatternSpec } from './pattern_spec.js';
 export { buildDataflowIncidences, buildDataflowGraphSpec } from './dataflow_ast.js';
+export { createNameMapper } from './compose_name_mapper.js';
 export type { PatternSpec, PatternGraph } from './types.js';
 
 // For backward compatibility, also export graph as graph_adjacency
