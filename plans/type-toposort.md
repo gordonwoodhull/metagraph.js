@@ -83,3 +83,13 @@ This note explores what it would take to replace the runtime `topological_sort()
 2. Validate the helper with the existing `graph_pattern`/`subgraph_pattern` composition graph to ensure alias mapping doesn’t break the sort.
 3. If performance is acceptable, integrate the type-level sort into `ComposePatternSpec` and add compile-time tests.
 4. Seek your input on the open questions above before we remove the runtime sorter, so the path forward is locked in for next week’s work.
+
+---
+
+## 4. Experiment Log (May 19, 2025)
+
+- Added `experiment/type-toposort.ts`, a pure type-level implementation of topo sort that accumulates results mutably inside the recursion and wraps the final tuple in `readonly [...]`.
+- Created compile-time tests per size bucket:
+  - `type-toposort.test10.ts`, `.test20.ts`, `.test30.ts`, `.test40.ts`, `.test45.ts` all compile successfully. Linear DAGs of at least 45 nodes are still within the recursion ceiling on TS 5.8.
+  - `type-toposort.test50.ts` reaches the recursion limit (`Type instantiation is excessively deep`) and serves as a reference for the current boundary.
+- Lesson learned: keeping intermediate tuples as `string[]` (not `readonly`) avoids comparison explosions; we freeze the result exactly once at the end. This keeps tests green while still presenting immutable output types.
