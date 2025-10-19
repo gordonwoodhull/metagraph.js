@@ -1,6 +1,6 @@
-import { PatternSpec, PatternDefinition, Graph, DataflowInstance, KeyValue, Node, FlowFunction, GraphSpec } from './types.js';
+import { PatternSpec, PatternDefinition, Graph, PatternGraph, DataflowInstance, KeyValue, Node, FlowFunction, GraphSpec } from './types.js';
 import { as_array, as_keyvalue } from './core.js';
-import { graph_detect } from './graph.js';
+import { graph, graph_incidence, graph_detect } from './graph.js';
 import { dataflow } from './dataflow.js';
 
 /**
@@ -22,14 +22,21 @@ import { dataflow } from './dataflow.js';
  */
 export function pattern(spec: PatternSpec, flowspecs?: Record<string, Graph>): Graph;
 
+export function pattern<const Spec extends PatternSpec>(spec: Spec, flowspecs?: Record<string, Graph>): PatternGraph<Spec>;
 export function pattern(spec: { dataflow?: GraphSpec; interface: GraphSpec }, flowspecs?: Record<string, Graph>): Graph;
 
 export function pattern(
   spec: PatternSpec | { dataflow?: GraphSpec; interface: GraphSpec },
   flowspecs?: Record<string, Graph>
 ): Graph {
-  const flowspec = spec.dataflow && graph_detect(spec.dataflow);
-  const interf = graph_detect(spec.interface);
+  const flowspec = spec.dataflow
+    ? ('incidences' in spec.dataflow
+        ? graph_incidence((spec.dataflow as { incidences: Record<string, unknown> }).incidences)
+        : graph_detect(spec.dataflow))
+    : undefined;
+  const interfaceNodes = as_keyvalue(spec.interface.nodes);
+  const interfaceEdges = as_keyvalue(spec.interface.edges);
+  const interf = graph(interfaceNodes, interfaceEdges);
   const defn: PatternDefinition = { node: {}, edge: {} };
 
   interf.nodes().forEach(inode => {
@@ -111,7 +118,15 @@ export function pattern(
     }
   }));
 
-  return graph_detect({ nodes: inodes2, edges: iedges2 });
+  const patternGraph = graph_detect({ nodes: inodes2, edges: iedges2 });
+  if (isTypedPatternSpec(spec)) {
+    return patternGraph as PatternGraph<typeof spec>;
+  }
+  return patternGraph;
+}
+
+function isTypedPatternSpec(value: PatternSpec | { dataflow?: GraphSpec; interface: GraphSpec }): value is PatternSpec {
+  return Boolean(value && 'dataflow' in value && value.dataflow && 'incidences' in (value.dataflow as Record<string, unknown>));
 }
 
 export const define_dataflow = (flowspec: Graph, defn: PatternDefinition) => {

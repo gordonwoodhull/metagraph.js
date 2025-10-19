@@ -123,6 +123,50 @@ export interface InterfaceEdgeSpec {
   member?: InterfaceSpec;
   flow?: InterfaceSpec;
 }
+
+type AnyKeyValue = KeyValue<string, unknown>;
+
+type MemberNameSet<T> =
+  T extends undefined ? never :
+  T extends readonly AnyKeyValue[] ? T[number]['key'] :
+  T extends Record<infer K, unknown> ? K : never;
+
+type NodeSpecsFromValue<V> =
+  V extends NodeSpec ? V :
+  V extends readonly (infer R)[] ? NodeSpecsFromValue<R> : never;
+
+type MemberKeysFromValue<V> = NodeSpecsFromValue<V> extends infer S
+  ? S extends NodeSpec ? MemberNameSet<S['members']> : never
+  : never;
+
+type ClassMemberKeysFromValue<V> = NodeSpecsFromValue<V> extends infer S
+  ? S extends NodeSpec ? MemberNameSet<S['class_members']> : never
+  : never;
+
+type AnyFunction = (...args: any[]) => unknown;
+
+type RecordFromKeys<Keys extends PropertyKey> = Keys extends never
+  ? {}
+  : { [K in Keys]: AnyFunction };
+
+export type PatternNodeValueType<Value> =
+  RecordFromKeys<MemberKeysFromValue<Value>> &
+  RecordFromKeys<ClassMemberKeysFromValue<Value>>;
+
+type NodeKeyUnion<Spec extends PatternSpec> = Extract<keyof Spec['interface']['nodes'], string>;
+
+export type PatternNodeValueUnion<Spec extends PatternSpec> =
+  PatternNodeValueType<Spec['interface']['nodes'][NodeKeyUnion<Spec>]> extends infer U ? U : never;
+
+export type PatternNodeValueFor<
+  Spec extends PatternSpec,
+  Key extends NodeKeyUnion<Spec>
+> = PatternNodeValueType<Spec['interface']['nodes'][Key]>;
+
+export type PatternGraph<Spec extends PatternSpec> = Graph<PatternNodeValueUnion<Spec>> & {
+  node<Key extends NodeKeyUnion<Spec>>(key: Key): Node<PatternNodeValueFor<Spec, Key>> | undefined;
+  nodes(): Node<PatternNodeValueUnion<Spec>>[];
+};
 type PatternSpecRaw = {
   dataflow: { incidences: Record<string, DataflowNodeSpec> };
   interface: {

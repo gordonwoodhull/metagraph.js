@@ -32,6 +32,13 @@ describe('graph_pattern', () => {
         | 'node_ins'
       >();
     });
+
+    it('produces a typed pattern graph', () => {
+      const pat = pattern(graph_pattern());
+      expectTypeOf(pat.node).parameter(0).toEqualTypeOf<'Graph' | 'Node' | 'Edge'>();
+      expectTypeOf(pat.node('Graph')!.value()).toMatchTypeOf<{ create: (...args: any[]) => unknown }>();
+      expectTypeOf(pat.node('Node')!.value()).toMatchTypeOf<{ key: (...args: any[]) => unknown; value: (...args: any[]) => unknown }>();
+    });
   });
 
   let graph: any;

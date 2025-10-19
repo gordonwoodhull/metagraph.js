@@ -46,6 +46,7 @@ export { createable, call, reference, fetch, lookupArg, lookupFVal, lookupKVal, 
 export { input, output, map, singleton, list, map_of_lists, subset } from './dataflow_calcs.js';
 export { graph_pattern } from './graph_pattern.js';
 export { subgraph_pattern } from './subgraph_pattern.js';
+export type { PatternSpec, PatternGraph } from './types.js';
 
 // For backward compatibility, also export graph as graph_adjacency
 export { graph as graph_adjacency } from './graph.js';
