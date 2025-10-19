@@ -1,28 +1,16 @@
-import { Graph } from './types.js';
-import { as_array, as_keyvalue } from './core.js';
+import { Graph, InterfaceNodeValue, InterfaceEdgeSpec } from './types.js';
+import { as_array } from './core.js';
 import { topological_sort } from './topological_sort.js';
 import { graph_detect } from './graph.js';
 import { pattern } from './pattern.js';
+import { definePattern } from './pattern_spec.js';
 
 /**
  * Composes multiple graph patterns into a single unified pattern.
  * Resolves dependencies between patterns and creates a combined interface.
- * 
+ *
  * @param composition - A graph where nodes are patterns and edges define dependencies
  * @returns A composed pattern that combines all input patterns
- * 
- * @example
- * ```typescript
- * const comp = compose(graph_detect({
- *   nodes: {
- *     graph: graph_pattern(),
- *     subgraph: subgraph_pattern()
- *   },
- *   edges: {
- *     dependency: {source: 'graph', target: 'subgraph', input: 'parent'}
- *   }
- * }));
- * ```
  */
 export const compose = (composition: Graph) => {
   const sorted = topological_sort(composition);
@@ -60,15 +48,15 @@ export const compose = (composition: Graph) => {
   });
 
   // unite patterns
-  const nodes: any[] = [];
-  const edges: any[] = [];
+  const nodes: { key: string; value: unknown }[] = [];
+  const edges: { key: string; value: any }[] = [];
   const mappings: Record<string, string> = {};
-  
+
   const lookup = (key: string) => mappings[key] || key;
 
   sorted.forEach(patnode => {
-    const pattern = built[patnode.key()];
-    pattern.nodes().forEach(inode => {
+    const pat = built[patnode.key()];
+    pat.nodes().forEach(inode => {
       const key = patnode.key() + '.' + inode.key();
       const ref = as_array(inode.value()).find((spec: any) => typeof spec === 'string');
       if (ref) {
@@ -78,11 +66,11 @@ export const compose = (composition: Graph) => {
         mappings[key] = key2;
       }
       else nodes.push({
-        key: key,
+        key,
         value: inode.value()
       });
     });
-    pattern.edges().forEach(iedge => {
+    pat.edges().forEach(iedge => {
       const val2 = Object.assign({}, iedge.value());
       val2.source = lookup(patnode.key() + '.' + iedge.source().key());
       val2.target = lookup(patnode.key() + '.' + iedge.target().key());
@@ -93,10 +81,23 @@ export const compose = (composition: Graph) => {
     });
   });
 
-  return pattern({
+  const interfaceNodeRecord = nodes.reduce<Record<string, InterfaceNodeValue<string>>>((acc, kv) => {
+    acc[kv.key] = kv.value as InterfaceNodeValue<string>;
+    return acc;
+  }, {});
+
+  const interfaceEdgeRecord = edges.reduce<Record<string, InterfaceEdgeSpec>>((acc, kv) => {
+    acc[kv.key] = kv.value as InterfaceEdgeSpec;
+    return acc;
+  }, {});
+
+  const composedSpec = definePattern({
+    dataflow: { incidences: {} },
     interface: {
-      nodes,
-      edges
+      nodes: interfaceNodeRecord,
+      edges: interfaceEdgeRecord
     }
-  }, flowspecs);
+  });
+
+  return pattern(composedSpec, flowspecs);
 };

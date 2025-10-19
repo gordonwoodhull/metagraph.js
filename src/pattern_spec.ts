@@ -25,5 +25,3 @@ export const definePattern = <
 
   return Object.assign({ ast }, spec);
 };
-
-export const makePatternSpec = definePattern;

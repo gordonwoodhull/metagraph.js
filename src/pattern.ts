@@ -1,4 +1,4 @@
-import { PatternSpec, PatternSpecWithAst, PatternDefinition, Graph, PatternGraph, DataflowInstance, KeyValue, Node, FlowFunction, GraphSpec } from './types.js';
+import { PatternSpec, PatternSpecWithAst, PatternDefinition, Graph, PatternGraph, DataflowInstance, KeyValue, Node, FlowFunction, GraphSpec, DataflowNodeSpec } from './types.js';
 import { as_array, as_keyvalue } from './core.js';
 import { graph, graph_incidence, graph_detect } from './graph.js';
 import { dataflow } from './dataflow.js';
@@ -29,11 +29,17 @@ export function pattern(
   spec: PatternSpec | { dataflow?: GraphSpec; interface: GraphSpec },
   flowspecs?: Record<string, Graph>
 ): Graph {
-  const flowspec = spec.dataflow
-    ? ('incidences' in spec.dataflow
-        ? graph_incidence((spec.dataflow as { incidences: Record<string, unknown> }).incidences)
-        : graph_detect(spec.dataflow))
-    : undefined;
+  let flowspec: Graph | undefined;
+  if (spec.dataflow) {
+    if ('incidences' in spec.dataflow) {
+      const incidences = (spec.dataflow as { incidences: Record<string, DataflowNodeSpec> }).incidences;
+      if (Object.keys(incidences || {}).length > 0) {
+        flowspec = graph_incidence(incidences);
+      }
+    } else {
+      flowspec = graph_detect(spec.dataflow);
+    }
+  }
   const ast = hasPatternAst(spec) ? spec.ast : undefined;
   const interfaceNodes = ast?.interface.nodes ?? as_keyvalue(spec.interface.nodes);
   const interfaceEdges = ast?.interface.edges ?? as_keyvalue(spec.interface.edges);
