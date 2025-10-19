@@ -18,9 +18,17 @@ import { as_array, build_map } from './core.js';
  */
 export const input = (path?: string): DataflowNodeFactory<[], unknown> => ({
   calc: (fnode: Node) => {
-    const actualPath = path || fnode.key();
+    const spec = fnode.value() as { original?: { key: string } };
+    const originalKey = spec.original?.key;
+    const actualPath = path ?? originalKey ?? fnode.key();
+    if (path === undefined && actualPath.includes('.')) {
+      const segments = actualPath.split('.');
+      const name = segments[segments.length - 1];
+      return (defn: PatternDefinition) => (flow: DataflowInstance) => () => 
+        flow.input('data', name);
+    }
     const parts = actualPath.split('.');
-    const [namespace, name] = parts.length > 1 ? parts : ['data', actualPath];
+    const [namespace, name] = parts.length > 1 ? [parts[0], parts.slice(1).join('.')] : ['data', actualPath];
     return (defn: PatternDefinition) => (flow: DataflowInstance) => () => 
       flow.input(namespace, name);
   }

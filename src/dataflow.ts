@@ -11,18 +11,26 @@ class DataflowInstanceImpl implements DataflowInstance {
   ) {}
 
   calc(id: string): unknown {
-    if (!this.instance[id]) {
-      const n = this.flowgraph.node(id);
+    let lookupId = id;
+    let n = this.flowgraph.node(lookupId);
+    if (!n && !id.includes('.')) {
+      const suffixMatch = this.flowgraph.nodes().find(node => node.key().endsWith(`.${id}`));
+      if (suffixMatch) {
+        lookupId = suffixMatch.key();
+        n = suffixMatch;
+      }
+    }
+    if (!this.instance[lookupId]) {
       if (!n) {
         throw new Error(`Node ${id} not found in dataflow graph`);
       }
       const nodeValue = n.value() as DataflowNode;
-      this.instance[id] = nodeValue.calc(this).apply(null, n.ins().map((e: Edge) => {
+      this.instance[lookupId] = nodeValue.calc(this).apply(null, n.ins().map((e: Edge) => {
         return this.calc(e.source().key());
       }));
-      console.assert(this.instance[id]);
+      console.assert(this.instance[lookupId]);
     }
-    return this.instance[id];
+    return this.instance[lookupId];
   }
 
   input(namespace: string, field: string): unknown {

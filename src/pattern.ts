@@ -68,14 +68,19 @@ export function pattern(
     };
   });
 
-  const resolve = (deps: string[], funfun: FlowFunction) => 
+  const resolve = (deps: string[], funfun: FlowFunction, flowspec: Graph | undefined, depsOriginal: string[]) => 
     (defn: PatternDefinition, flow: DataflowInstance, val: unknown) => {
       const action = funfun(defn, flow, val);
       return (...args: unknown[]) => 
-        (action as Function).apply(null, deps.map(dep => {
-          const parts = dep.split('.');
+        (action as Function).apply(null, deps.map((dep, index) => {
+          if (flowspec && flowspec.node(dep)) {
+            return flow.calc(dep);
+          }
+          const original = depsOriginal[index] ?? dep;
+          const parts = original.split('.');
           if (parts.length > 1) {
-            return flow.input(parts[0], parts[1]);
+            const [namespace, ...rest] = parts;
+            return flow.input(namespace, rest.join('.'));
           } else {
             return flow.calc(dep);
           }
@@ -85,13 +90,15 @@ export function pattern(
   interf.edges().forEach(iedge => {
     const ekey = iedge.key();
     const evalue = iedge.value() as Record<string, unknown>;
-    const fs = flowspec || flowspecs?.[ekey.split('.')[0]];
+    const patternKey = ekey.split('.')[0];
+    const fs = flowspecs?.[patternKey] || flowspec;
     const action = (evalue as {member?: {funfun?: Function}}).member;
     
     if (action && action.funfun) {
       const funfun = action.funfun!(fs, iedge, flowspecs);
       const deps = as_array((evalue as {deps?: string | string[]}).deps);
-      const resolvedFunfun = resolve(deps, funfun);
+      const depsOriginal = as_array((evalue as {depsOriginal?: string | string[]}).depsOriginal);
+      const resolvedFunfun = resolve(deps, funfun, fs, depsOriginal);
       defn.node[iedge.source().key()].members[(evalue as {name: string}).name] = { defn: resolvedFunfun };
     }
   });
@@ -99,7 +106,8 @@ export function pattern(
   interf.nodes().forEach(inode => {
     const nkey = inode.key();
     const nvalue = inode.value();
-    const fs = flowspec || flowspecs?.[nkey.split('.')[0]];
+    const nodePatternKey = nkey.split('.')[0];
+    const fs = flowspecs?.[nodePatternKey] || flowspec;
     
     as_array(inode.value()).forEach((spec: Record<string, unknown>) => {
       as_keyvalue((spec as {class_members?: Record<string, unknown>}).class_members).forEach((cmemspec: KeyValue) => {

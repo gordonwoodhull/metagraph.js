@@ -23,8 +23,13 @@ export const createable = (flowkey: string) => ({
         return (data: unknown) => {
           const env: Record<string, unknown> = {};
           const flow = flowg.instantiate(env, { data });
-          env[flowkey] = defn.node[inode.key()].wrap(flow, (data as Record<string, unknown>)[inode.key()]);
-          return env[flowkey];
+          const wrapper = defn.node[inode.key()].wrap(flow, (data as Record<string, unknown>)[inode.key()]);
+          env[flowkey] = wrapper;
+          const inodeKey = inode.key();
+          if (inodeKey.includes('.')) {
+            env[`${inodeKey.split('.')[0]}.${flowkey}`] = wrapper;
+          }
+        return wrapper;
         };
       }
     })
@@ -196,8 +201,13 @@ export const subgraph = () => ({
         const gflow = graflow.instantiate(genv, {
           data: sgflow
         });
-        genv.graph = defn.node[iedge.target().key()].wrap(gflow, gdata);
-        return genv.graph;
+        const targetKey = iedge.target().key();
+        const wrapped = defn.node[targetKey].wrap(gflow, gdata);
+        genv.graph = wrapped;
+        if (targetKey.includes('.')) {
+          genv[`${targetKey.split('.')[0]}.graph`] = wrapped;
+        }
+        return wrapped;
       };
     }
 });

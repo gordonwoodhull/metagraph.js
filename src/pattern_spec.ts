@@ -29,7 +29,13 @@ export const definePattern = <
         factory: nodeSpec.node,
         refs: normalizeList(nodeSpec.refs),
         ins: normalizeList(nodeSpec.ins),
-        deps: normalizeList(nodeSpec.deps)
+        deps: normalizeList(nodeSpec.deps),
+        original: {
+          key: key as ExtractStringKeys<DataflowNodes>,
+          refs: normalizeList(nodeSpec.refs),
+          ins: normalizeList(nodeSpec.ins),
+          deps: normalizeList(nodeSpec.deps)
+        }
       };
     });
   const interfaceNodes = toKeyValueArray(spec.interface.nodes);

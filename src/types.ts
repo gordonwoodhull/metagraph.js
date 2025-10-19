@@ -110,6 +110,12 @@ export type DataflowNodeSpec = {
   refs?: NamespacedList<string>;
   ins?: NamespacedList<string>;
   deps?: NamespacedList<string>;
+  original?: {
+    key: string;
+    refs?: readonly string[];
+    ins?: readonly string[];
+    deps?: readonly string[];
+  };
 };
 
 export type DataflowNodeAst<NodeKey extends string = string> = {
@@ -118,22 +124,15 @@ export type DataflowNodeAst<NodeKey extends string = string> = {
   refs: readonly string[];
   ins: readonly string[];
   deps: readonly string[];
+  original?: {
+    key: NodeKey;
+    refs: readonly string[];
+    ins: readonly string[];
+    deps: readonly string[];
+  };
 };
 
 export type DataflowAst<NodeKey extends string = string> = readonly DataflowNodeAst<NodeKey>[];
-
-export type InterfaceNodeValue<
-  InterfaceNodeKeys extends string
-> = NodeSpec | InterfaceNodeKeys | ExternalReference | (NodeSpec | InterfaceNodeKeys | ExternalReference)[];
-
-export interface InterfaceEdgeSpec {
-  name: string;
-  source: NamespacedKey<string>;
-  target: NamespacedKey<string>;
-  deps?: NamespacedList<string>;
-  member?: InterfaceSpec;
-  flow?: InterfaceSpec;
-}
 
 type AnyKeyValue = KeyValue<string, unknown>;
 
@@ -160,6 +159,22 @@ type RecordFromKeys<Keys extends PropertyKey> = Keys extends never
   ? {}
   : { [K in Keys]: AnyFunction };
 
+export type InterfaceNodeValue<
+  InterfaceNodeKeys extends string
+> = NodeSpec | InterfaceNodeKeys | ExternalReference | (NodeSpec | InterfaceNodeKeys | ExternalReference)[];
+
+export interface InterfaceEdgeSpec {
+  name: string;
+  source: NamespacedKey<string>;
+  target: NamespacedKey<string>;
+  deps?: NamespacedList<string>;
+  depsOriginal?: string | readonly string[];
+  member?: InterfaceSpec;
+  flow?: InterfaceSpec;
+}
+
+type ExtractStringKeys<T> = Extract<keyof T, string>;
+
 export type PatternNodeValueType<Value> =
   RecordFromKeys<MemberKeysFromValue<Value>> &
   RecordFromKeys<ClassMemberKeysFromValue<Value>>;
@@ -178,7 +193,6 @@ export type PatternGraph<Spec extends PatternSpec> = Graph<PatternNodeValueUnion
   node<Key extends NodeKeyUnion<Spec>>(key: Key): Node<PatternNodeValueFor<Spec, Key>> | undefined;
   nodes(): Node<PatternNodeValueUnion<Spec>>[];
 };
-type ExtractStringKeys<T> = Extract<keyof T, string>;
 
 export type PatternSpecDescriptor<
   InterfaceNodes extends Record<string, InterfaceNodeValue<ExtractStringKeys<InterfaceNodes>>> = Record<string, InterfaceNodeValue<string>>,
@@ -220,6 +234,239 @@ export type PatternSpecWithAst<
   InterfaceEdges extends Record<string, InterfaceEdgeSpec> = Record<string, InterfaceEdgeSpec>
 > = PatternSpec<InterfaceNodes, DataflowNodes, InterfaceEdges> & {
   ast: PatternAstData<InterfaceNodes, DataflowNodes, InterfaceEdges>;
+};
+
+// ---------------------------------------------------------------------------
+// Composition typing helpers (Stage 2)
+// ---------------------------------------------------------------------------
+
+export type CompositionEdgeSpec<PatternKeys extends string> = {
+  source: PatternKeys;
+  target: PatternKeys;
+  input?: string;
+};
+
+export type CompositionSpec<
+  Patterns extends Record<string, PatternSpecWithAst>,
+  Edges extends Record<string, CompositionEdgeSpec<Extract<keyof Patterns, string>>>
+> = {
+  nodes: Patterns;
+  edges: Edges;
+};
+
+type CompositionPatternKeys<Spec extends CompositionSpec<Record<string, PatternSpecWithAst>, Record<string, CompositionEdgeSpec<string>>>> =
+  Extract<keyof Spec['nodes'], string>;
+
+type AliasMapFor<
+  Spec extends CompositionSpec<Record<string, PatternSpecWithAst>, Record<string, CompositionEdgeSpec<string>>>
+> = {
+  [Target in CompositionPatternKeys<Spec>]: {
+    [EdgeKey in keyof Spec['edges'] & string as Spec['edges'][EdgeKey] extends { target: Target; input: infer Input extends string }
+      ? Input
+      : never]: Spec['edges'][EdgeKey] extends { target: Target; source: infer Source extends string } ? Source : never
+  };
+};
+
+type PatternAliasMap<
+  Map extends Record<string, Record<string, string>>,
+  Key extends string
+> = Key extends keyof Map ? Map[Key] : Record<string, never>;
+
+export type NamespaceName<
+  PatternKey extends string,
+  Name extends string,
+  AliasMap extends Record<string, Record<string, string>>,
+  AllPatternKeys extends string
+> = Name extends `${infer Prefix}.${infer Rest}`
+  ? Prefix extends AllPatternKeys
+    ? `${Prefix}.${Rest}`
+    : Prefix extends keyof PatternAliasMap<AliasMap, PatternKey>
+      ? `${PatternAliasMap<AliasMap, PatternKey>[Prefix]}.${Rest}`
+      : `${PatternKey}.${Name}`
+  : `${PatternKey}.${Name}`;
+
+type NamespaceList<
+  PatternKey extends string,
+  List extends readonly string[],
+  AliasMap extends Record<string, Record<string, string>>,
+  AllPatternKeys extends string
+> =
+  List extends readonly []
+    ? readonly []
+    : List extends readonly [infer Head extends string, ...infer Tail extends string[]]
+      ? readonly [NamespaceName<PatternKey, Head, AliasMap, AllPatternKeys>, ...NamespaceList<PatternKey, Tail, AliasMap, AllPatternKeys>]
+      : readonly string[];
+
+type NamespaceInterfaceNodeValue<
+  PatternKey extends string,
+  Value,
+  AliasMap extends Record<string, Record<string, string>>,
+  AllPatternKeys extends string
+> =
+  Value extends string
+    ? NamespaceName<PatternKey, Value, AliasMap, AllPatternKeys>
+    : Value extends readonly unknown[]
+      ? { [Index in keyof Value]: NamespaceInterfaceNodeValue<PatternKey, Value[Index], AliasMap, AllPatternKeys> }
+      : Value;
+
+type NamespaceMaybeList<
+  PatternKey extends string,
+  Value,
+  AliasMap extends Record<string, Record<string, string>>,
+  AllPatternKeys extends string
+> =
+  Value extends readonly string[]
+    ? NamespaceList<PatternKey, Value, AliasMap, AllPatternKeys>
+    : Value extends string
+      ? NamespaceName<PatternKey, Value, AliasMap, AllPatternKeys>
+      : Value;
+
+type NamespaceInterfaceEdgeValue<
+  PatternKey extends string,
+  Value extends InterfaceEdgeSpec,
+  AliasMap extends Record<string, Record<string, string>>,
+  AllPatternKeys extends string
+> = {
+  name: Value['name'];
+  source: NamespaceName<PatternKey, Value['source'], AliasMap, AllPatternKeys>;
+  target: NamespaceName<PatternKey, Value['target'], AliasMap, AllPatternKeys>;
+  deps: NamespaceMaybeList<PatternKey, Value['deps'], AliasMap, AllPatternKeys>;
+  depsOriginal: Value['depsOriginal'] extends undefined ? Value['deps'] : Value['depsOriginal'];
+  member: Value['member'];
+  flow: Value['flow'];
+};
+
+type NamespacedDataflowNode<
+  PatternKey extends string,
+  Node extends DataflowNodeAst,
+  AliasMap extends Record<string, Record<string, string>>,
+  AllPatternKeys extends string
+> = {
+  key: NamespaceName<PatternKey, Node['key'], AliasMap, AllPatternKeys>;
+  factory: Node['factory'];
+  refs: NamespaceList<PatternKey, Node['refs'], AliasMap, AllPatternKeys>;
+  ins: NamespaceList<PatternKey, Node['ins'], AliasMap, AllPatternKeys>;
+  deps: NamespaceList<PatternKey, Node['deps'], AliasMap, AllPatternKeys>;
+};
+
+type NamespacedInterfaceNodeEntry<
+  PatternKey extends string,
+  Entry extends KeyValue<string, InterfaceNodeValue<string>>,
+  AliasMap extends Record<string, Record<string, string>>,
+  AllPatternKeys extends string
+> = KeyValue<
+  NamespaceName<PatternKey, Entry['key'], AliasMap, AllPatternKeys>,
+  NamespaceInterfaceNodeValue<PatternKey, Entry['value'], AliasMap, AllPatternKeys>
+>;
+
+type NamespacedInterfaceEdgeEntry<
+  PatternKey extends string,
+  Entry extends KeyValue<string, InterfaceEdgeSpec>,
+  AliasMap extends Record<string, Record<string, string>>,
+  AllPatternKeys extends string
+> = KeyValue<
+  NamespaceName<PatternKey, Entry['key'], AliasMap, AllPatternKeys>,
+  NamespaceInterfaceEdgeValue<PatternKey, Entry['value'], AliasMap, AllPatternKeys>
+>;
+
+type NamespacedDataflowNodeUnion<
+  Spec extends CompositionSpec<Record<string, PatternSpecWithAst>, Record<string, CompositionEdgeSpec<string>>>,
+  AliasMap extends Record<string, Record<string, string>>,
+  AllPatternKeys extends string
+> =
+  {
+    [PatternKey in CompositionPatternKeys<Spec>]:
+      Spec['nodes'][PatternKey]['ast']['dataflow']['nodes'][number] extends infer Node
+        ? Node extends DataflowNodeAst
+          ? NamespacedDataflowNode<PatternKey, Node, AliasMap, AllPatternKeys>
+          : never
+        : never
+  }[CompositionPatternKeys<Spec>];
+
+type NamespacedInterfaceNodeUnion<
+  Spec extends CompositionSpec<Record<string, PatternSpecWithAst>, Record<string, CompositionEdgeSpec<string>>>,
+  AliasMap extends Record<string, Record<string, string>>,
+  AllPatternKeys extends string
+> =
+  {
+    [PatternKey in CompositionPatternKeys<Spec>]:
+      Spec['nodes'][PatternKey]['ast']['interface']['nodes'][number] extends infer Entry
+        ? Entry extends KeyValue<string, InterfaceNodeValue<string>>
+          ? NamespacedInterfaceNodeEntry<PatternKey, Entry, AliasMap, AllPatternKeys>
+          : never
+        : never
+  }[CompositionPatternKeys<Spec>];
+
+type NamespacedInterfaceEdgeUnion<
+  Spec extends CompositionSpec<Record<string, PatternSpecWithAst>, Record<string, CompositionEdgeSpec<string>>>,
+  AliasMap extends Record<string, Record<string, string>>,
+  AllPatternKeys extends string
+> =
+  {
+    [PatternKey in CompositionPatternKeys<Spec>]:
+      Spec['nodes'][PatternKey]['ast']['interface']['edges'][number] extends infer Entry
+        ? Entry extends KeyValue<string, InterfaceEdgeSpec>
+          ? NamespacedInterfaceEdgeEntry<PatternKey, Entry, AliasMap, AllPatternKeys>
+          : never
+        : never
+  }[CompositionPatternKeys<Spec>];
+
+export type ComposeDataflowAst<
+  Spec extends CompositionSpec<Record<string, PatternSpecWithAst>, Record<string, CompositionEdgeSpec<string>>>
+> = readonly NamespacedDataflowNodeUnion<Spec, AliasMapFor<Spec>, CompositionPatternKeys<Spec>>[];
+
+export type ComposeInterfaceNodesAst<
+  Spec extends CompositionSpec<Record<string, PatternSpecWithAst>, Record<string, CompositionEdgeSpec<string>>>
+> = readonly NamespacedInterfaceNodeUnion<Spec, AliasMapFor<Spec>, CompositionPatternKeys<Spec>>[];
+
+export type ComposeInterfaceEdgesAst<
+  Spec extends CompositionSpec<Record<string, PatternSpecWithAst>, Record<string, CompositionEdgeSpec<string>>>
+> = readonly NamespacedInterfaceEdgeUnion<Spec, AliasMapFor<Spec>, CompositionPatternKeys<Spec>>[];
+
+type ComposeDataflowKeyUnion<
+  Spec extends CompositionSpec<Record<string, PatternSpecWithAst>, Record<string, CompositionEdgeSpec<string>>>
+> = NamespacedDataflowNodeUnion<Spec, AliasMapFor<Spec>, CompositionPatternKeys<Spec>>['key'];
+
+type ComposeInterfaceNodeKeyUnion<
+  Spec extends CompositionSpec<Record<string, PatternSpecWithAst>, Record<string, CompositionEdgeSpec<string>>>
+> = NamespacedInterfaceNodeUnion<Spec, AliasMapFor<Spec>, CompositionPatternKeys<Spec>>['key'];
+
+type ComposeInterfaceEdgeKeyUnion<
+  Spec extends CompositionSpec<Record<string, PatternSpecWithAst>, Record<string, CompositionEdgeSpec<string>>>
+> = NamespacedInterfaceEdgeUnion<Spec, AliasMapFor<Spec>, CompositionPatternKeys<Spec>>['key'];
+
+export type ComposeDataflowIncidences<
+  Spec extends CompositionSpec<Record<string, PatternSpecWithAst>, Record<string, CompositionEdgeSpec<string>>>
+> = Record<ComposeDataflowKeyUnion<Spec>, DataflowNodeSpec>;
+
+export type ComposeInterfaceNodesRecord<
+  Spec extends CompositionSpec<Record<string, PatternSpecWithAst>, Record<string, CompositionEdgeSpec<string>>>
+> = Record<ComposeInterfaceNodeKeyUnion<Spec>, InterfaceNodeValue<ComposeInterfaceNodeKeyUnion<Spec>>>;
+
+export type ComposeInterfaceEdgesRecord<
+  Spec extends CompositionSpec<Record<string, PatternSpecWithAst>, Record<string, CompositionEdgeSpec<string>>>
+> = Record<ComposeInterfaceEdgeKeyUnion<Spec>, InterfaceEdgeSpec>;
+
+export type ComposePatternAst<
+  Spec extends CompositionSpec<Record<string, PatternSpecWithAst>, Record<string, CompositionEdgeSpec<string>>>
+> = {
+  dataflow: {
+    nodes: ComposeDataflowAst<Spec>;
+  };
+  interface: {
+    nodes: ComposeInterfaceNodesAst<Spec>;
+    edges: ComposeInterfaceEdgesAst<Spec>;
+  };
+};
+
+export type ComposePatternSpec<
+  Spec extends CompositionSpec<Record<string, PatternSpecWithAst>, Record<string, CompositionEdgeSpec<string>>>
+> = PatternSpec<
+  ComposeInterfaceNodesRecord<Spec>,
+  ComposeDataflowIncidences<Spec>,
+  ComposeInterfaceEdgesRecord<Spec>
+> & {
+  ast: ComposePatternAst<Spec>;
 };
 
 type ValidateRefs<Refs, Keys extends string> =

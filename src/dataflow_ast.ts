@@ -29,7 +29,13 @@ export const buildDataflowIncidences = (
       node: node.factory,
       refs: toNamespacedList(node.refs, options.ref),
       ins: toNamespacedList(node.ins, options.link),
-      deps: toNamespacedList(node.deps, options.dep ?? options.link)
+      deps: toNamespacedList(node.deps, options.dep ?? options.link),
+      original: node.original ? {
+        key: node.original.key,
+        refs: node.original.refs,
+        ins: node.original.ins,
+        deps: node.original.deps
+      } : undefined
     };
   });
 
