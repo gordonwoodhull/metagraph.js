@@ -1,4 +1,4 @@
-import { PatternSpec, PatternSpecWithAst, PatternDefinition, Graph, PatternGraph, DataflowInstance, KeyValue, Node, FlowFunction, GraphSpec, DataflowNodeSpec } from './types.js';
+import { PatternSpec, PatternSpecWithAst, PatternDefinition, Graph, PatternGraph, Dataflow, DataflowInstance, KeyValue, Node, FlowFunction, GraphSpec, DataflowNodeSpec, DataflowAst } from './types.js';
 import { as_array, as_keyvalue } from './core.js';
 import { graph, graph_incidence, graph_detect } from './graph.js';
 import { dataflow } from './dataflow.js';
@@ -143,8 +143,15 @@ function hasPatternAst(spec: PatternSpec | PatternSpecWithAst | { dataflow?: Gra
   return typeof spec === 'object' && spec !== null && 'ast' in spec;
 }
 
-export const define_dataflow = (flowspec: Graph, defn: PatternDefinition) => {
-  const flownodes = flowspec.nodes().map(fsn => ({
+export function define_dataflow(source: Graph, defn: PatternDefinition): Dataflow;
+export function define_dataflow(source: GraphSpec<DataflowNodeSpec>, defn: PatternDefinition): Dataflow;
+export function define_dataflow(source: DataflowAst<string>, defn: PatternDefinition): Dataflow;
+export function define_dataflow(
+  source: Graph | GraphSpec<DataflowNodeSpec> | DataflowAst<string>,
+  defn: PatternDefinition
+): Dataflow {
+  const flowspecGraph = toGraph(source);
+  const flownodes = flowspecGraph.nodes().map(fsn => ({
     key: fsn.key(),
     value: {
       calc: (fsn.value() as any).node.calc(fsn)(defn)
@@ -153,6 +160,22 @@ export const define_dataflow = (flowspec: Graph, defn: PatternDefinition) => {
 
   return dataflow({
     nodes: flownodes,
-    edges: flowspec.edges().map(e => ({ key: e.key(), value: e.value() }))
+    edges: flowspecGraph.edges().map(e => ({ key: e.key(), value: e.value() }))
   });
+}
+
+const toGraph = (source: Graph | GraphSpec<DataflowNodeSpec> | DataflowAst<string>): Graph => {
+  if (isGraphInstance(source)) {
+    return source;
+  }
+  if (Array.isArray(source)) {
+    return graph_incidence(buildDataflowIncidences(source));
+  }
+  if (source && typeof source === 'object' && 'incidences' in source) {
+    return graph_incidence((source as GraphSpec<DataflowNodeSpec>).incidences || {});
+  }
+  throw new Error('Unsupported dataflow source');
 };
+
+const isGraphInstance = (value: unknown): value is Graph =>
+  !!value && typeof value === 'object' && typeof (value as Graph).nodes === 'function' && typeof (value as Graph).edges === 'function';
