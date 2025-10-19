@@ -1,4 +1,5 @@
-import { GraphOptions, makePatternSpec } from './types.js';
+import { GraphOptions } from './types.js';
+import { definePattern } from './pattern_spec.js';
 import { input, output, subset } from './dataflow_calcs.js';
 import { subgraph, lookupArg } from './interface.js';
 
@@ -27,7 +28,7 @@ const graph_options = <N = any, E = any>(opts?: Partial<GraphOptions<N, E>>): Gr
  * ```
  */
 export const subgraph_pattern = <N = any, E = any>(_opts?: Partial<GraphOptions<N, E>>) => {
-  return makePatternSpec({
+  return definePattern({
     dataflow: {
       incidences: {
         parent_nodes: { node: input('parent.nodes') },

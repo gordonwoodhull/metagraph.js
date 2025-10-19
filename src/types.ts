@@ -167,12 +167,48 @@ export type PatternGraph<Spec extends PatternSpec> = Graph<PatternNodeValueUnion
   node<Key extends NodeKeyUnion<Spec>>(key: Key): Node<PatternNodeValueFor<Spec, Key>> | undefined;
   nodes(): Node<PatternNodeValueUnion<Spec>>[];
 };
-type PatternSpecRaw = {
-  dataflow: { incidences: Record<string, DataflowNodeSpec> };
-  interface: {
-    nodes: Record<string, InterfaceNodeValue<string>>;
-    edges: Record<string, InterfaceEdgeSpec>;
+type ExtractStringKeys<T> = Extract<keyof T, string>;
+
+export type PatternSpecDescriptor<
+  InterfaceNodes extends Record<string, InterfaceNodeValue<ExtractStringKeys<InterfaceNodes>>> = Record<string, InterfaceNodeValue<string>>,
+  DataflowNodes extends Record<string, DataflowNodeSpec> = Record<string, DataflowNodeSpec>,
+  InterfaceEdges extends Record<string, InterfaceEdgeSpec> = Record<string, InterfaceEdgeSpec>
+> = {
+  dataflow: {
+    incidences: DataflowNodes;
   };
+  interface: {
+    nodes: InterfaceNodes;
+    edges: InterfaceEdges;
+  };
+};
+
+export type PatternSpec<
+  InterfaceNodes extends Record<string, InterfaceNodeValue<ExtractStringKeys<InterfaceNodes>>> = Record<string, InterfaceNodeValue<string>>,
+  DataflowNodes extends Record<string, DataflowNodeSpec> = Record<string, DataflowNodeSpec>,
+  InterfaceEdges extends Record<string, InterfaceEdgeSpec> = Record<string, InterfaceEdgeSpec>
+> = PatternSpecDescriptor<InterfaceNodes, DataflowNodes, InterfaceEdges>;
+
+export interface PatternAstData<
+  InterfaceNodes extends Record<string, InterfaceNodeValue<ExtractStringKeys<InterfaceNodes>>>,
+  DataflowNodes extends Record<string, DataflowNodeSpec>,
+  InterfaceEdges extends Record<string, InterfaceEdgeSpec>
+> {
+  dataflow: {
+    nodes: readonly KeyValue<ExtractStringKeys<DataflowNodes>, DataflowNodes[ExtractStringKeys<DataflowNodes>]>[];
+  };
+  interface: {
+    nodes: readonly KeyValue<ExtractStringKeys<InterfaceNodes>, InterfaceNodes[ExtractStringKeys<InterfaceNodes>]>[];
+    edges: readonly KeyValue<ExtractStringKeys<InterfaceEdges>, InterfaceEdges[ExtractStringKeys<InterfaceEdges>]>[];
+  };
+}
+
+export type PatternSpecWithAst<
+  InterfaceNodes extends Record<string, InterfaceNodeValue<ExtractStringKeys<InterfaceNodes>>> = Record<string, InterfaceNodeValue<string>>,
+  DataflowNodes extends Record<string, DataflowNodeSpec> = Record<string, DataflowNodeSpec>,
+  InterfaceEdges extends Record<string, InterfaceEdgeSpec> = Record<string, InterfaceEdgeSpec>
+> = PatternSpec<InterfaceNodes, DataflowNodes, InterfaceEdges> & {
+  ast: PatternAstData<InterfaceNodes, DataflowNodes, InterfaceEdges>;
 };
 
 type ValidateRefs<Refs, Keys extends string> =
@@ -194,34 +230,34 @@ type ValidateKey<Key, Keys extends string> =
       : never
     : never;
 
-type AssertPattern<T extends PatternSpecRaw> = {
+export type AssertPattern<
+  InterfaceNodes extends Record<string, InterfaceNodeValue<ExtractStringKeys<InterfaceNodes>>>,
+  DataflowNodes extends Record<string, DataflowNodeSpec>,
+  InterfaceEdges extends Record<string, InterfaceEdgeSpec>
+> = {
   dataflow: {
     incidences: {
-      [K in keyof T['dataflow']['incidences']]: {
-        node: T['dataflow']['incidences'][K]['node'];
-        refs?: ValidateRefs<T['dataflow']['incidences'][K]['refs'], Extract<keyof T['interface']['nodes'], string>>;
-        ins?: ValidateRefs<T['dataflow']['incidences'][K]['ins'], Extract<keyof T['dataflow']['incidences'], string>>;
+      [K in keyof DataflowNodes]: {
+        node: DataflowNodes[K]['node'];
+        refs?: ValidateRefs<DataflowNodes[K]['refs'], ExtractStringKeys<InterfaceNodes>>;
+        ins?: ValidateRefs<DataflowNodes[K]['ins'], ExtractStringKeys<DataflowNodes>>;
       };
     };
   };
   interface: {
-    nodes: T['interface']['nodes'];
+    nodes: InterfaceNodes;
     edges: {
-      [K in keyof T['interface']['edges']]: {
-        name: T['interface']['edges'][K]['name'];
-        source: ValidateKey<T['interface']['edges'][K]['source'], Extract<keyof T['interface']['nodes'], string>>;
-        target: ValidateKey<T['interface']['edges'][K]['target'], Extract<keyof T['interface']['nodes'], string>>;
-        deps?: ValidateEdgeDeps<T['interface']['edges'][K]['deps'], Extract<keyof T['dataflow']['incidences'], string>>;
-        member?: T['interface']['edges'][K]['member'];
-        flow?: T['interface']['edges'][K]['flow'];
+      [K in keyof InterfaceEdges]: {
+        name: InterfaceEdges[K]['name'];
+        source: ValidateKey<InterfaceEdges[K]['source'], ExtractStringKeys<InterfaceNodes>>;
+        target: ValidateKey<InterfaceEdges[K]['target'], ExtractStringKeys<InterfaceNodes>>;
+        deps?: ValidateEdgeDeps<InterfaceEdges[K]['deps'], ExtractStringKeys<DataflowNodes>>;
+        member?: InterfaceEdges[K]['member'];
+        flow?: InterfaceEdges[K]['flow'];
       };
     };
   };
-} & T;
-
-export type PatternSpec = PatternSpecRaw;
-
-export const makePatternSpec = <T extends PatternSpecRaw>(spec: AssertPattern<T>) => spec;
+} & PatternSpec<InterfaceNodes, DataflowNodes, InterfaceEdges>;
 
 // Additional type definitions for better type safety
 export interface EdgeSourceTarget {
