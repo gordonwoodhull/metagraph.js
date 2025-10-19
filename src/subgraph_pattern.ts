@@ -1,4 +1,4 @@
-import { GraphOptions } from './types.js';
+import { GraphOptions, makePatternSpec } from './types.js';
 import { input, output, subset } from './dataflow_calcs.js';
 import { subgraph, lookupArg } from './interface.js';
 
@@ -26,9 +26,8 @@ const graph_options = <N = any, E = any>(opts?: Partial<GraphOptions<N, E>>): Gr
  * // Results in parent.subgraph(['nodeA', 'nodeB'], ['edge1'], data)
  * ```
  */
-export const subgraph_pattern = (opts?: any) => {
-  const options = graph_options(opts);
-  return {
+export const subgraph_pattern = <N = any, E = any>(_opts?: Partial<GraphOptions<N, E>>) => {
+  return makePatternSpec({
     dataflow: {
       incidences: {
         parent_nodes: { node: input('parent.nodes') },
@@ -86,16 +85,18 @@ export const subgraph_pattern = (opts?: any) => {
         subnodeS: {
           name: 'subnode',
           source: 'ChildGraph', target: 'ParentGraph',
-          deps: 'node_by_key', // should be child:
+          deps: 'node_by_key',
           member: lookupArg((x: any) => x.key())
         },
         subedgeS: {
           name: 'subedge',
           source: 'ChildGraph', target: 'ParentGraph',
-          deps: 'edge_by_key', // should be child:
+          deps: 'edge_by_key',
           flow: lookupArg((x: any) => x.key())
         }
       }
     }
-  };
+  });
 };
+
+export type SubgraphPatternDefinition = ReturnType<typeof subgraph_pattern>;

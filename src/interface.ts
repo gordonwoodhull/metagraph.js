@@ -85,7 +85,10 @@ export const reference = (inode: Node) => ({
 export const fetch = () => ({
   funfun: (flowspec: Graph, iedge: Edge) => 
     (defn: PatternDefinition, flow: DataflowInstance) => 
-      (x: unknown) => () => x
+      (...args: unknown[]) => {
+        const [value] = args as [unknown];
+        return () => value;
+      }
 });
 
 /**
@@ -108,8 +111,10 @@ export const lookupArg = (access?: (x: unknown) => unknown) => ({
   funfun: (flowspec: Graph, iedge: Edge) => {
     const accessor = access || ((x: unknown) => x);
     return (defn: PatternDefinition, flow: DataflowInstance, val: unknown) => 
-      (map: Record<string, unknown>) => 
-        (key: unknown) => map[accessor(key) as string];
+      (...args: unknown[]) => {
+        const [map] = args as [Record<string, unknown>];
+        return (key: unknown) => map[accessor(key) as string];
+      };
   }
 });
 
@@ -129,7 +134,10 @@ export const lookupArg = (access?: (x: unknown) => unknown) => ({
 export const lookupFVal = (access: (val: unknown) => unknown) => ({
   funfun: (flowspec: Graph, iedge: Edge) =>
     (defn: PatternDefinition, flow: DataflowInstance, val: unknown) =>
-      (map: Record<string, unknown>) => () => map[access(val) as string]
+      (...args: unknown[]) => {
+        const [map] = args as [Record<string, unknown>];
+        return () => map[access(val) as string];
+      }
 });
 
 /**
@@ -147,8 +155,11 @@ export const lookupFVal = (access: (val: unknown) => unknown) => ({
 export const lookupKVal = () => ({
   funfun: (flowspec: Graph, iedge: Edge) =>
     (defn: PatternDefinition, flow: DataflowInstance, val: unknown) =>
-      (map: Record<string, unknown>) => () =>
-        map[(defn.node[iedge.source().key()].members.key.accessor as (val: unknown) => string)(val)] || []
+      (...args: unknown[]) => {
+        const [map] = args as [Record<string, unknown>];
+        return () =>
+          map[(defn.node[iedge.source().key()].members.key.accessor as (val: unknown) => string)(val)] || [];
+      }
 });
 
 /**

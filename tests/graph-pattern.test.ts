@@ -1,7 +1,39 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, expectTypeOf } from 'vitest';
 import { pattern, graph_pattern } from '../src/index.js';
 
 describe('graph_pattern', () => {
+  describe('compile-time shape', () => {
+    type Spec = ReturnType<typeof graph_pattern>;
+
+    it('exposes the expected incidence keys', () => {
+      type IncidenceKeys = keyof Spec['dataflow']['incidences'];
+      expectTypeOf<IncidenceKeys>().toEqualTypeOf<
+        'nodes' | 'edges' | 'node_by_key' | 'edge_by_key' | 'graph' | 'node_list' | 'edge_list' | 'node_outs' | 'node_ins'
+      >();
+    });
+
+    it('exposes the expected interface node keys', () => {
+      type InterfaceNodeKeys = keyof Spec['interface']['nodes'];
+      expectTypeOf<InterfaceNodeKeys>().toEqualTypeOf<'Graph' | 'Node' | 'Edge'>();
+    });
+
+    it('exposes the expected interface edge keys', () => {
+      type InterfaceEdgeKeys = keyof Spec['interface']['edges'];
+      expectTypeOf<InterfaceEdgeKeys>().toEqualTypeOf<
+        | 'graph_node'
+        | 'node_graph'
+        | 'graph_nodes'
+        | 'graph_edge'
+        | 'edge_graph'
+        | 'graph_edges'
+        | 'edge_source'
+        | 'edge_target'
+        | 'node_outs'
+        | 'node_ins'
+      >();
+    });
+  });
+
   let graph: any;
 
   const get_key = (n: any) => n.key();

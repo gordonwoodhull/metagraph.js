@@ -1,4 +1,4 @@
-import { GraphOptions } from './types.js';
+import { GraphOptions, makePatternSpec } from './types.js';
 import { input, output, map, singleton, list, map_of_lists } from './dataflow_calcs.js';
 import { createable, call, fetch, lookupArg, lookupFVal, lookupKVal } from './interface.js';
 
@@ -29,9 +29,9 @@ const graph_options = <N = any, E = any>(opts?: Partial<GraphOptions<N, E>>): Gr
  * });
  * ```
  */
-export const graph_pattern = (opts?: any) => {
-  const options = graph_options(opts);
-  return {
+export const graph_pattern = <N = any, E = any>(opts?: Partial<GraphOptions<N, E>>) => {
+  const options = graph_options<N, E>(opts);
+  return makePatternSpec({
     dataflow: {
       incidences: {
         nodes: { node: input() },
@@ -138,5 +138,7 @@ export const graph_pattern = (opts?: any) => {
         }
       }
     }
-  };
+  });
 };
+
+export type GraphPatternDefinition = ReturnType<typeof graph_pattern>;

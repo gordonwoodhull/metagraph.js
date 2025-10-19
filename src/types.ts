@@ -56,13 +56,15 @@ export interface DataflowNode {
   calc: (instance: DataflowInstance) => FlowFunction;
 }
 
-export interface Dataflow {
-  instantiate(instance: Record<string, unknown>, inputs: Record<string, unknown>): DataflowInstance;
+export interface DataflowNodeFactory<
+  Inputs extends unknown[] = unknown[],
+  Output = unknown
+> {
+  calc: (fnode: Node) => (defn: PatternDefinition) => (flow: DataflowInstance) => (...args: Inputs) => Output;
 }
 
-export interface PatternSpec {
-  dataflow?: GraphSpec;
-  interface: GraphSpec;
+export interface Dataflow {
+  instantiate(instance: Record<string, unknown>, inputs: Record<string, unknown>): DataflowInstance;
 }
 
 export interface PatternDefinition {
@@ -89,9 +91,93 @@ export interface ClassMemberSpec {
 }
 
 export interface NodeSpec {
-  members?: KeyValue<string, (flowspec: Graph, inode: Node) => MemberSpec>[];
-  class_members?: KeyValue<string, (flowspec: Graph, inode: Node) => ClassMemberSpec>[];
+  members?: KeyValue<string, (flowspec: Graph, inode: Node) => MemberSpec>[] | Record<string, (flowspec: Graph, inode: Node) => MemberSpec>;
+  class_members?: KeyValue<string, (flowspec: Graph, inode: Node) => ClassMemberSpec>[] | Record<string, (flowspec: Graph, inode: Node) => ClassMemberSpec>;
 }
+
+// ---------------------------------------------------------------------------
+// Compile-time pattern typing helpers
+// ---------------------------------------------------------------------------
+
+type LiteralArray<Item extends string> = readonly Item[];
+
+type ExternalReference = `${string}.${string}`;
+type NamespacedKey<Key extends string> = Key | ExternalReference;
+type NamespacedList<Key extends string> = NamespacedKey<Key> | readonly NamespacedKey<Key>[];
+
+export type DataflowNodeSpec = {
+  node: DataflowNodeFactory<any, any>;
+  refs?: NamespacedList<string>;
+  ins?: NamespacedList<string>;
+};
+
+export type InterfaceNodeValue<
+  InterfaceNodeKeys extends string
+> = NodeSpec | InterfaceNodeKeys | ExternalReference | (NodeSpec | InterfaceNodeKeys | ExternalReference)[];
+
+export interface InterfaceEdgeSpec {
+  name: string;
+  source: NamespacedKey<string>;
+  target: NamespacedKey<string>;
+  deps?: NamespacedList<string>;
+  member?: InterfaceSpec;
+  flow?: InterfaceSpec;
+}
+type PatternSpecRaw = {
+  dataflow: { incidences: Record<string, DataflowNodeSpec> };
+  interface: {
+    nodes: Record<string, InterfaceNodeValue<string>>;
+    edges: Record<string, InterfaceEdgeSpec>;
+  };
+};
+
+type ValidateRefs<Refs, Keys extends string> =
+  Refs extends undefined
+    ? undefined
+    : Refs extends NamespacedList<string>
+      ? Refs extends NamespacedList<Keys>
+        ? Refs
+        : never
+      : never;
+
+type ValidateEdgeDeps<Deps, Keys extends string> =
+  Deps extends undefined ? undefined : ValidateRefs<Deps, Keys>;
+
+type ValidateKey<Key, Keys extends string> =
+  Key extends NamespacedKey<string>
+    ? Key extends NamespacedKey<Keys>
+      ? Key
+      : never
+    : never;
+
+type AssertPattern<T extends PatternSpecRaw> = {
+  dataflow: {
+    incidences: {
+      [K in keyof T['dataflow']['incidences']]: {
+        node: T['dataflow']['incidences'][K]['node'];
+        refs?: ValidateRefs<T['dataflow']['incidences'][K]['refs'], Extract<keyof T['interface']['nodes'], string>>;
+        ins?: ValidateRefs<T['dataflow']['incidences'][K]['ins'], Extract<keyof T['dataflow']['incidences'], string>>;
+      };
+    };
+  };
+  interface: {
+    nodes: T['interface']['nodes'];
+    edges: {
+      [K in keyof T['interface']['edges']]: {
+        name: T['interface']['edges'][K]['name'];
+        source: ValidateKey<T['interface']['edges'][K]['source'], Extract<keyof T['interface']['nodes'], string>>;
+        target: ValidateKey<T['interface']['edges'][K]['target'], Extract<keyof T['interface']['nodes'], string>>;
+        deps?: ValidateEdgeDeps<T['interface']['edges'][K]['deps'], Extract<keyof T['dataflow']['incidences'], string>>;
+        member?: T['interface']['edges'][K]['member'];
+        flow?: T['interface']['edges'][K]['flow'];
+      };
+    };
+  };
+} & T;
+
+export type PatternSpec = PatternSpecRaw;
+
+export const makePatternSpec = <T extends PatternSpecRaw>(spec: AssertPattern<T>) => spec;
 
 // Additional type definitions for better type safety
 export interface EdgeSourceTarget {
@@ -103,16 +189,6 @@ export interface NodeWithIncidences {
   edges?: string[];
   ins?: string[];
   outs?: string[];
-}
-
-export interface DataflowNodeSpec {
-  node: DataflowNodeValue<unknown>;
-  refs?: string;
-  ins?: string | string[];
-}
-
-export interface DataflowNodeValue<T> {
-  calc: (instance: DataflowInstance) => (...args: unknown[]) => T;
 }
 
 export interface PatternNodeDefinition {
@@ -130,9 +206,7 @@ export interface PatternEdgeDefinition {
   funfun?: InterfaceSpec['funfun'];
 }
 
-export interface FlowFunction<TInput = unknown, TOutput = unknown> {
-  (...args: TInput[]): TOutput;
-}
+export type FlowFunction<Inputs extends unknown[] = unknown[], Output = unknown> = (...args: Inputs) => Output;
 
 // Type guards for runtime validation
 export function isKeyValue(obj: unknown): obj is KeyValue {

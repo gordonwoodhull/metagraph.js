@@ -1,4 +1,4 @@
-import { PatternSpec, PatternDefinition, Graph, DataflowInstance, KeyValue, Node, FlowFunction } from './types.js';
+import { PatternSpec, PatternDefinition, Graph, DataflowInstance, KeyValue, Node, FlowFunction, GraphSpec } from './types.js';
 import { as_array, as_keyvalue } from './core.js';
 import { graph_detect } from './graph.js';
 import { dataflow } from './dataflow.js';
@@ -20,7 +20,14 @@ import { dataflow } from './dataflow.js';
  * });
  * ```
  */
-export const pattern = (spec: PatternSpec, flowspecs?: Record<string, Graph>): Graph => {
+export function pattern(spec: PatternSpec, flowspecs?: Record<string, Graph>): Graph;
+
+export function pattern(spec: { dataflow?: GraphSpec; interface: GraphSpec }, flowspecs?: Record<string, Graph>): Graph;
+
+export function pattern(
+  spec: PatternSpec | { dataflow?: GraphSpec; interface: GraphSpec },
+  flowspecs?: Record<string, Graph>
+): Graph {
   const flowspec = spec.dataflow && graph_detect(spec.dataflow);
   const interf = graph_detect(spec.interface);
   const defn: PatternDefinition = { node: {}, edge: {} };
@@ -105,7 +112,7 @@ export const pattern = (spec: PatternSpec, flowspecs?: Record<string, Graph>): G
   }));
 
   return graph_detect({ nodes: inodes2, edges: iedges2 });
-};
+}
 
 export const define_dataflow = (flowspec: Graph, defn: PatternDefinition) => {
   const flownodes = flowspec.nodes().map(fsn => ({

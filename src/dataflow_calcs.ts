@@ -1,4 +1,4 @@
-import { DataflowNode, PatternDefinition, DataflowInstance, Graph, Node } from './types.js';
+import { DataflowNodeFactory, PatternDefinition, DataflowInstance, Graph, Node } from './types.js';
 import { as_array, build_map } from './core.js';
 
 /**
@@ -16,7 +16,7 @@ import { as_array, build_map } from './core.js';
  * const defaultInput = input();
  * ```
  */
-export const input = (path?: string) => ({
+export const input = (path?: string): DataflowNodeFactory<[], unknown> => ({
   calc: (fnode: Node) => {
     const actualPath = path || fnode.key();
     const parts = actualPath.split('.');
@@ -34,8 +34,11 @@ export const input = (path?: string) => ({
  * @param namespace - Optional output namespace (unused in current implementation)
  * @returns A dataflow node specification that passes through input data
  */
-export const output = (name?: string, namespace?: string) => ({
-  calc: (fnode: Node) => (defn: PatternDefinition) => (flow: DataflowInstance) => (x: unknown) => x
+export const output = <Input = unknown>() : DataflowNodeFactory<[Input], Input> => ({
+  calc: (fnode: Node) => (defn: PatternDefinition) => (flow: DataflowInstance) => (...args: unknown[]) => {
+    const [value] = args as [Input?];
+    return value as Input;
+  }
 });
 
 /**
@@ -50,15 +53,17 @@ export const output = (name?: string, namespace?: string) => ({
  * const mapNode = map(); // Creates {key1: wrappedItem1, key2: wrappedItem2, ...}
  * ```
  */
-export const map = () => ({
+export const map = (): DataflowNodeFactory<[unknown[]], Record<string, unknown>> => ({
   calc: (fnode: Node) => {
     const iref = as_array(fnode.value().refs)[0];
-    return (defn: PatternDefinition) => (flow: DataflowInstance) => (data: unknown[]) =>
-      build_map(
+    return (defn: PatternDefinition) => (flow: DataflowInstance) => (...args: unknown[]) => {
+      const [data] = args as [unknown[]];
+      return build_map(
         data,
         defn.node[iref].members.key.accessor as (val: unknown) => string,
         defn.node[iref].wrap.bind(null, flow)
       );
+    };
   }
 });
 
@@ -69,7 +74,7 @@ export const map = () => ({
  * @returns A dataflow node specification for singleton values
  * @throws Error when accessed before proper initialization
  */
-export const singleton = () => ({
+export const singleton = (): DataflowNodeFactory<[], never> => ({
   calc: (fnode: Node) => (defn: PatternDefinition) => (flow: DataflowInstance) => () => {
     throw new Error('singleton not initialized');
   }
@@ -87,11 +92,13 @@ export const singleton = () => ({
  * const listNode = list(); // [data[0] -> map[key0], data[1] -> map[key1], ...]
  * ```
  */
-export const list = () => ({
+export const list = (): DataflowNodeFactory<[unknown[], Record<string, unknown>], unknown[]> => ({
   calc: (fnode: Node) => {
     const iref = as_array(fnode.value().refs)[0];
-    return (defn: PatternDefinition) => (flow: DataflowInstance) => (data: unknown[], map: Record<string, unknown>) =>
-      data.map(val => map[(defn.node[iref].members.key.accessor as (val: unknown) => string)(val)]);
+    return (defn: PatternDefinition) => (flow: DataflowInstance) => (...args: unknown[]) => {
+      const [data, map] = args as [unknown[], Record<string, unknown>];
+      return data.map(val => map[(defn.node[iref].members.key.accessor as (val: unknown) => string)(val)]);
+    };
   }
 });
 
@@ -109,8 +116,9 @@ export const list = () => ({
  * // Result: {nodeA: [edge1, edge2], nodeB: [edge3], ...}
  * ```
  */
-export const map_of_lists = (accessor: (val: unknown) => string) => ({
-  calc: (fnode: Node) => (defn: PatternDefinition) => (flow: DataflowInstance) => (data: unknown[], map: Record<string, unknown>) => {
+export const map_of_lists = (accessor: (val: unknown) => string): DataflowNodeFactory<[unknown[], Record<string, unknown>], Record<string, unknown[]>> => ({
+  calc: (fnode: Node) => (defn: PatternDefinition) => (flow: DataflowInstance) => (...args: unknown[]) => {
+    const [data, map] = args as [unknown[], Record<string, unknown>];
     const iref = as_array((fnode.value() as {refs?: string | string[]}).refs)[0];
     return data.reduce((o: Record<string, unknown[]>, v) => {
       const key = accessor(v);
@@ -133,10 +141,11 @@ export const map_of_lists = (accessor: (val: unknown) => string) => ({
  * const filteredNodes = subset(); // filters items where item.key ∈ keySet
  * ```
  */
-export const subset = () => ({
+export const subset = (): DataflowNodeFactory<[unknown[], string[]], unknown[]> => ({
   calc: (fnode: Node) => {
     const iref = as_array(fnode.value().refs)[0];
-    return (defn: PatternDefinition) => (flow: DataflowInstance) => (items: unknown[], keys: string[]) => {
+    return (defn: PatternDefinition) => (flow: DataflowInstance) => (...args: unknown[]) => {
+      const [items, keys] = args as [unknown[], string[]];
       const keySet = new Set(keys);
       return items.filter(r => keySet.has((defn.node[iref].members.key.accessor as (val: unknown) => string)(r)));
     };
