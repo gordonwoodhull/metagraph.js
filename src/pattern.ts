@@ -30,8 +30,15 @@ export function pattern(
   spec: PatternSpec | { dataflow?: GraphSpec; interface: GraphSpec },
   flowspecs?: Record<string, Graph>
 ): Graph {
+  const ast = hasPatternAst(spec) ? spec.ast : undefined;
+
   let flowspec: Graph | undefined;
-  if (spec.dataflow) {
+  if (ast) {
+    const incidences = buildDataflowIncidences(ast.dataflow.nodes);
+    if (Object.keys(incidences).length > 0) {
+      flowspec = graph_incidence(incidences);
+    }
+  } else if (spec.dataflow) {
     if ('incidences' in spec.dataflow) {
       const incidences = (spec.dataflow as { incidences: Record<string, DataflowNodeSpec> }).incidences;
       if (Object.keys(incidences || {}).length > 0) {
@@ -41,7 +48,6 @@ export function pattern(
       flowspec = graph_detect(spec.dataflow);
     }
   }
-  const ast = hasPatternAst(spec) ? spec.ast : undefined;
   const interfaceNodes = ast?.interface.nodes ?? as_keyvalue(spec.interface.nodes);
   const interfaceEdges = ast?.interface.edges ?? as_keyvalue(spec.interface.edges);
   const interf = graph(interfaceNodes, interfaceEdges);
