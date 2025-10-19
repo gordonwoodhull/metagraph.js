@@ -2,6 +2,7 @@ import { PatternSpec, PatternSpecWithAst, PatternDefinition, Graph, PatternGraph
 import { as_array, as_keyvalue } from './core.js';
 import { graph, graph_incidence, graph_detect } from './graph.js';
 import { dataflow } from './dataflow.js';
+import { buildDataflowIncidences } from './dataflow_ast.js';
 
 /**
  * Creates a reusable graph pattern that can generate graph instances from data.
@@ -143,7 +144,7 @@ export const define_dataflow = (flowspec: Graph, defn: PatternDefinition) => {
       calc: (fsn.value() as any).node.calc(fsn)(defn)
     }
   }));
-  
+
   return dataflow({
     nodes: flownodes,
     edges: flowspec.edges().map(e => ({ key: e.key(), value: e.value() }))
