@@ -109,7 +109,18 @@ export type DataflowNodeSpec = {
   node: DataflowNodeFactory<any, any>;
   refs?: NamespacedList<string>;
   ins?: NamespacedList<string>;
+  deps?: NamespacedList<string>;
 };
+
+export type DataflowNodeAst<NodeKey extends string = string> = {
+  key: NodeKey;
+  factory: DataflowNodeFactory<any, any>;
+  refs: readonly string[];
+  ins: readonly string[];
+  deps: readonly string[];
+};
+
+export type DataflowAst<NodeKey extends string = string> = readonly DataflowNodeAst<NodeKey>[];
 
 export type InterfaceNodeValue<
   InterfaceNodeKeys extends string
@@ -195,7 +206,7 @@ export interface PatternAstData<
   InterfaceEdges extends Record<string, InterfaceEdgeSpec>
 > {
   dataflow: {
-    nodes: readonly KeyValue<ExtractStringKeys<DataflowNodes>, DataflowNodes[ExtractStringKeys<DataflowNodes>]>[];
+    nodes: DataflowAst<ExtractStringKeys<DataflowNodes>>;
   };
   interface: {
     nodes: readonly KeyValue<ExtractStringKeys<InterfaceNodes>, InterfaceNodes[ExtractStringKeys<InterfaceNodes>]>[];
@@ -221,7 +232,7 @@ type ValidateRefs<Refs, Keys extends string> =
       : never;
 
 type ValidateEdgeDeps<Deps, Keys extends string> =
-  Deps extends undefined ? undefined : ValidateRefs<Deps, Keys>;
+  Deps extends undefined ? undefined : Deps;
 
 type ValidateKey<Key, Keys extends string> =
   Key extends NamespacedKey<string>
