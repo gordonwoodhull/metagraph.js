@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { graph_pattern } from '../src/graph_pattern.js';
-import { buildDataflowIncidences } from '../src/dataflow_ast.js';
+import { buildDataflowIncidences, buildDataflowGraphSpec } from '../src/dataflow_ast.js';
 
 describe('dataflow AST helper', () => {
   const toList = (value: unknown): string[] => {
@@ -23,5 +23,12 @@ describe('dataflow AST helper', () => {
       expect(toList(built.ins)).toEqual(toList(original.ins));
       expect(toList(built.deps)).toEqual(toList(original.deps));
     });
+  });
+
+  it('generates a graph spec with edges derived from ins', () => {
+    const spec = graph_pattern();
+    const graphSpec = buildDataflowGraphSpec(spec.ast.dataflow.nodes);
+
+    expect(Object.keys(graphSpec.incidences)).toEqual(Object.keys(spec.dataflow.incidences));
   });
 });

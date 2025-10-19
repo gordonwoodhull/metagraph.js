@@ -1,4 +1,4 @@
-import { DataflowAst, DataflowNodeSpec } from './types.js';
+import { DataflowAst, DataflowNodeSpec, GraphSpec, KeyValue } from './types.js';
 
 export interface DataflowTransformOptions {
   key?: (key: string) => string;
@@ -34,4 +34,12 @@ export const buildDataflowIncidences = (
   });
 
   return incidences;
+};
+
+export const buildDataflowGraphSpec = (
+  nodes: DataflowAst,
+  options: DataflowTransformOptions = {}
+): GraphSpec<DataflowNodeSpec> => {
+  const incidences = buildDataflowIncidences(nodes, options);
+  return { incidences };
 };
