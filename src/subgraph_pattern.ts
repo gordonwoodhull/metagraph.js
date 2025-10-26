@@ -1,9 +1,29 @@
 import { pattern, PatternOptions } from './pattern.js';
 import type { PatternSpecLiteral, AccessorDeclarations } from './spec.js';
+import type { Graph, Node } from './types.js';
 
 export interface SubgraphPatternRuntimeAccessors {
   wrappedKey: (wrapper: { key: () => string }) => string;
 }
+
+type SubgraphAccessorTypes<A extends SubgraphPatternRuntimeAccessors> = {
+  wrapper: Parameters<A['wrappedKey']>[0];
+  key: ReturnType<A['wrappedKey']>;
+};
+
+type SubgraphWrapper<A extends SubgraphPatternRuntimeAccessors> = {
+  subgraph: (
+    nodeKeys: ReadonlyArray<SubgraphAccessorTypes<A>['key']>,
+    edgeKeys: ReadonlyArray<SubgraphAccessorTypes<A>['key']>,
+    data: unknown
+  ) => Graph;
+} & Record<string, unknown>;
+
+type SubgraphPatternFactory<A extends SubgraphPatternRuntimeAccessors> = ReturnType<typeof pattern> & {
+  node(name: 'ParentGraph'): Node<SubgraphWrapper<A>>;
+  node(name: 'ChildGraph'): Node<SubgraphWrapper<A>>;
+  node(name: string): Node<unknown>;
+};
 
 type SubgraphPayloads = Record<string, never>;
 
@@ -96,21 +116,12 @@ export const defaultSubgraphAccessors = (): SubgraphPatternRuntimeAccessors => (
   wrappedKey: (wrapper) => wrapper.key()
 });
 
-const mergeAccessors = (
-  overrides?: Partial<SubgraphPatternRuntimeAccessors>
-): SubgraphPatternRuntimeAccessors => {
-  const defaults = defaultSubgraphAccessors();
-  return {
-    wrappedKey: overrides?.wrappedKey ?? defaults.wrappedKey
-  };
-};
-
-export const subgraph_pattern = (
-  accessors?: Partial<SubgraphPatternRuntimeAccessors>
-) => {
-  const runtimeAccessors = mergeAccessors(accessors);
+export const subgraph_pattern = <A extends SubgraphPatternRuntimeAccessors = SubgraphPatternRuntimeAccessors>(
+  accessors?: A
+): SubgraphPatternFactory<A> => {
+  const runtimeAccessors = (accessors ?? defaultSubgraphAccessors()) as SubgraphPatternRuntimeAccessors;
   const options: PatternOptions<typeof subgraphPatternSpec> = {
     accessors: runtimeAccessors
   };
-  return pattern(subgraphPatternSpec, options);
+  return pattern(subgraphPatternSpec, options) as SubgraphPatternFactory<A>;
 };

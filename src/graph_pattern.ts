@@ -1,6 +1,6 @@
 import { pattern, PatternOptions } from './pattern.js';
 import type { PatternSpecLiteral, AccessorDeclarations } from './spec.js';
-import type { KeyValue } from './types.js';
+import type { KeyValue, Graph, Node } from './types.js';
 
 type GraphAccessorMap = {
   nodeKey: (kv: KeyValue<string, unknown>) => string;
@@ -12,6 +12,39 @@ type GraphAccessorMap = {
 };
 
 export type GraphPatternRuntimeAccessors = GraphAccessorMap;
+
+type AccessorTypes<A extends GraphPatternRuntimeAccessors> = {
+  nodeInput: Parameters<A['nodeValue']>[0];
+  edgeInput: Parameters<A['edgeValue']>[0];
+  nodeValue: ReturnType<A['nodeValue']>;
+  edgeValue: ReturnType<A['edgeValue']>;
+};
+
+type GraphCreateInput<A extends GraphPatternRuntimeAccessors> = {
+  nodes: ReadonlyArray<AccessorTypes<A>['nodeInput']>;
+  edges: ReadonlyArray<AccessorTypes<A>['edgeInput']>;
+};
+
+type GraphClassMembers<A extends GraphPatternRuntimeAccessors> = {
+  create: (data: GraphCreateInput<A>) => Graph<AccessorTypes<A>['nodeValue'], AccessorTypes<A>['edgeValue']>;
+};
+
+type NodeMembers<A extends GraphPatternRuntimeAccessors> = {
+  key: () => ReturnType<A['nodeKey']>;
+  value: () => AccessorTypes<A>['nodeValue'];
+} & Record<string, unknown>;
+
+type EdgeMembers<A extends GraphPatternRuntimeAccessors> = {
+  key: () => ReturnType<A['edgeKey']>;
+  value: () => AccessorTypes<A>['edgeValue'];
+} & Record<string, unknown>;
+
+type GraphPatternFactory<A extends GraphPatternRuntimeAccessors> = ReturnType<typeof pattern> & {
+  node(name: 'Graph'): Node<GraphClassMembers<A>>;
+  node(name: 'Node'): Node<NodeMembers<A>>;
+  node(name: 'Edge'): Node<EdgeMembers<A>>;
+  node(name: string): Node<unknown>;
+};
 
 type GraphPayloads = {
   readonly graph: {
@@ -181,26 +214,12 @@ export const defaultGraphPatternAccessors = (): GraphPatternRuntimeAccessors => 
   edgeTarget: (kv: KeyValue<string, unknown>) => (kv.value as { target: string }).target
 });
 
-const mergeAccessors = (
-  overrides?: Partial<GraphPatternRuntimeAccessors>
-): GraphPatternRuntimeAccessors => {
-  const defaults = defaultGraphPatternAccessors();
-  return {
-    nodeKey: overrides?.nodeKey ?? defaults.nodeKey,
-    edgeKey: overrides?.edgeKey ?? defaults.edgeKey,
-    nodeValue: overrides?.nodeValue ?? defaults.nodeValue,
-    edgeValue: overrides?.edgeValue ?? defaults.edgeValue,
-    edgeSource: overrides?.edgeSource ?? defaults.edgeSource,
-    edgeTarget: overrides?.edgeTarget ?? defaults.edgeTarget
-  };
-};
-
-export const graph_pattern = (
-  accessors?: Partial<GraphPatternRuntimeAccessors>
-) => {
-  const runtimeAccessors = mergeAccessors(accessors);
+export const graph_pattern = <A extends GraphPatternRuntimeAccessors = GraphPatternRuntimeAccessors>(
+  accessors?: A
+): GraphPatternFactory<A> => {
+  const runtimeAccessors = (accessors ?? defaultGraphPatternAccessors()) as GraphPatternRuntimeAccessors;
   const options: PatternOptions<typeof graphPatternSpec> = {
     accessors: runtimeAccessors
   };
-  return pattern(graphPatternSpec, options);
+  return pattern(graphPatternSpec, options) as GraphPatternFactory<A>;
 };
