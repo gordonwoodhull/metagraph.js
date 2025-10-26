@@ -47,7 +47,13 @@ export type MemberSignature =
   | SubgraphSignature;
 
 // Extract class/member maps from the spec literal
- type ClassMemberMap<S extends PatternSpecLiteral, NodeKey extends keyof InterfaceNodeMap<S> & string> =
+type PayloadMap<S extends PatternSpecLiteral> = S['payloads'];
+
+type FlowPayload<S extends PatternSpecLiteral, FlowKey extends string> = FlowKey extends keyof PayloadMap<S>
+  ? PayloadMap<S>[FlowKey]
+  : Record<string, unknown>;
+
+type ClassMemberMap<S extends PatternSpecLiteral, NodeKey extends keyof InterfaceNodeMap<S> & string> =
   InterfaceNodeMap<S>[NodeKey] extends infer NodeLiteral
     ? NodeLiteral extends { classMembers: Record<string, CreateableSignature> }
       ? NodeLiteral['classMembers']
@@ -91,9 +97,13 @@ type ResolveMember<S extends PatternSpecLiteral, A extends AccessorImplementatio
             ? ResolveFetchMember
             : ResolveSubgraphMember;
 
-export type InferClassMembers<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, NodeKey extends keyof InterfaceNodeMap<S> & string> = {
+export type InferClassMembers<
+  S extends PatternSpecLiteral,
+  _A extends AccessorImplementations<S>,
+  NodeKey extends keyof InterfaceNodeMap<S> & string
+> = {
   readonly [K in keyof ClassMemberMap<S, NodeKey>]: ClassMemberMap<S, NodeKey>[K] extends CreateableSignature
-    ? (data: Record<string, unknown>) => unknown
+    ? (data: FlowPayload<S, ClassMemberMap<S, NodeKey>[K]['flow']>) => unknown
     : never;
 };
 
