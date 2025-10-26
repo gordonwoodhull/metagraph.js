@@ -98,21 +98,18 @@ export const defaultSubgraphAccessors = (): SubgraphPatternRuntimeAccessors => (
   wrappedKey: (wrapper) => wrapper.key()
 });
 
-const mergeAccessors = (
-  overrides?: Partial<SubgraphPatternRuntimeAccessors>
-): SubgraphPatternRuntimeAccessors => {
+export function subgraph_pattern(): PatternGraphType<typeof subgraphPatternSpec, SubgraphPatternRuntimeAccessors>;
+export function subgraph_pattern<A extends SubgraphPatternRuntimeAccessors>(accessors: A): PatternGraphType<typeof subgraphPatternSpec, A>;
+export function subgraph_pattern(accessors?: SubgraphPatternRuntimeAccessors) {
+  if (accessors) {
+    const options: PatternOptions<typeof subgraphPatternSpec, typeof accessors> = {
+      accessors
+    };
+    return pattern(subgraphPatternSpec, options);
+  }
   const defaults = defaultSubgraphAccessors();
-  return {
-    wrappedKey: overrides?.wrappedKey ?? defaults.wrappedKey
-  };
-};
-
-export const subgraph_pattern = (
-  accessors?: Partial<SubgraphPatternRuntimeAccessors>
-): PatternGraphType<typeof subgraphPatternSpec> => {
-  const runtimeAccessors = mergeAccessors(accessors);
-  const options: PatternOptions<typeof subgraphPatternSpec> = {
-    accessors: runtimeAccessors
+  const options: PatternOptions<typeof subgraphPatternSpec, typeof defaults> = {
+    accessors: defaults
   };
   return pattern(subgraphPatternSpec, options);
-};
+}

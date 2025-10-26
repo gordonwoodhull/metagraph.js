@@ -38,46 +38,51 @@ import {
   subgraph
 } from './interface.js';
 
-export interface PatternOptions<S extends PatternSpecLiteral> {
-  accessors: AccessorImplementations<S>;
+export interface PatternOptions<S extends PatternSpecLiteral, A extends AccessorImplementations<S> = AccessorImplementations<S>> {
+  accessors: A;
   flowspecs?: Record<string, Graph>;
 }
 
 type AccessorResolver = (key: string) => (...args: unknown[]) => unknown;
 
-export interface PreparedPatternGraphs<S extends PatternSpecLiteral = PatternSpecLiteral> {
+export interface PreparedPatternGraphs<
+  S extends PatternSpecLiteral = PatternSpecLiteral,
+  A extends AccessorImplementations<S> = AccessorImplementations<S>
+> {
   spec?: S;
+  accessors: A;
   flowspec?: Graph;
   interfaceGraph: Graph;
 }
 
-export const pattern = <S extends PatternSpecLiteral>(
+export const pattern = <S extends PatternSpecLiteral, A extends AccessorImplementations<S>>(
   spec: S,
-  options: PatternOptions<S>
-): PatternGraphType<S> => {
+  options: PatternOptions<S, A>
+): PatternGraphType<S, A> => {
   const graphs = buildGraphsFromSpec(spec, options.accessors);
   return realisePatternGraph(graphs, options.flowspecs);
 };
 
-export const buildGraphsFromSpec = <S extends PatternSpecLiteral>(
+export const buildGraphsFromSpec = <S extends PatternSpecLiteral, A extends AccessorImplementations<S>>(
   spec: S,
-  accessors: AccessorImplementations<S>
-): PreparedPatternGraphs<S> => {
+  accessors: A
+): PreparedPatternGraphs<S, A> => {
   const resolveAccessor = createAccessorResolver(spec, accessors);
-  return buildGraphs(spec, resolveAccessor);
+  return buildGraphs(spec, accessors, resolveAccessor);
 };
 
-export const realisePatternGraph = <S extends PatternSpecLiteral>(
-  graphs: PreparedPatternGraphs<S>,
+export const realisePatternGraph = <S extends PatternSpecLiteral, A extends AccessorImplementations<S>>(
+  graphs: PreparedPatternGraphs<S, A>,
   flowspecs?: Record<string, Graph>
-): PatternGraphType<S> => {
-  return instantiatePattern(graphs, flowspecs) as PatternGraphType<S>;
+): PatternGraphType<S, A> => {
+  return instantiatePattern(graphs, flowspecs) as PatternGraphType<S, A>;
 };
 
-const buildGraphs = <S extends PatternSpecLiteral>(
+const buildGraphs = <S extends PatternSpecLiteral, A extends AccessorImplementations<S>>(
   spec: S,
+  accessors: A,
   resolveAccessor: AccessorResolver
-): PreparedPatternGraphs<S> => {
+): PreparedPatternGraphs<S, A> => {
   const dataflowNodes = Object.entries(spec.dataflow.nodes).map(([key, literal]) => ({
     key,
     value: convertDataflowNode(literal, resolveAccessor)
@@ -104,6 +109,7 @@ const buildGraphs = <S extends PatternSpecLiteral>(
 
   return {
     spec,
+    accessors,
     flowspec,
     interfaceGraph
   };
@@ -283,8 +289,8 @@ const convertEdgeMember = (
   }
 };
 
-const instantiatePattern = <S extends PatternSpecLiteral>(
-  graphs: PreparedPatternGraphs<S>,
+const instantiatePattern = <S extends PatternSpecLiteral, A extends AccessorImplementations<S>>(
+  graphs: PreparedPatternGraphs<S, A>,
   flowspecs?: Record<string, Graph>
 ): Graph => {
   const { interfaceGraph, flowspec: baseFlowspec } = graphs;

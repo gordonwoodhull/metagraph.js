@@ -182,26 +182,18 @@ export const defaultGraphPatternAccessors = (): GraphPatternRuntimeAccessors => 
   edgeTarget: (kv: KeyValue<string, unknown>) => (kv.value as { target: string }).target
 });
 
-const mergeAccessors = (
-  overrides?: Partial<GraphPatternRuntimeAccessors>
-): GraphPatternRuntimeAccessors => {
+export function graph_pattern(): PatternGraphType<typeof graphPatternSpec, GraphPatternRuntimeAccessors>;
+export function graph_pattern<A extends GraphPatternRuntimeAccessors>(accessors: A): PatternGraphType<typeof graphPatternSpec, A>;
+export function graph_pattern(accessors?: GraphPatternRuntimeAccessors) {
+  if (accessors) {
+    const options: PatternOptions<typeof graphPatternSpec, typeof accessors> = {
+      accessors
+    };
+    return pattern(graphPatternSpec, options);
+  }
   const defaults = defaultGraphPatternAccessors();
-  return {
-    nodeKey: overrides?.nodeKey ?? defaults.nodeKey,
-    edgeKey: overrides?.edgeKey ?? defaults.edgeKey,
-    nodeValue: overrides?.nodeValue ?? defaults.nodeValue,
-    edgeValue: overrides?.edgeValue ?? defaults.edgeValue,
-    edgeSource: overrides?.edgeSource ?? defaults.edgeSource,
-    edgeTarget: overrides?.edgeTarget ?? defaults.edgeTarget
-  };
-};
-
-export const graph_pattern = (
-  accessors?: Partial<GraphPatternRuntimeAccessors>
-): PatternGraphType<typeof graphPatternSpec> => {
-  const runtimeAccessors = mergeAccessors(accessors);
-  const options: PatternOptions<typeof graphPatternSpec> = {
-    accessors: runtimeAccessors
+  const options: PatternOptions<typeof graphPatternSpec, typeof defaults> = {
+    accessors: defaults
   };
   return pattern(graphPatternSpec, options);
-};
+}

@@ -112,5 +112,12 @@ export const compose = (composition: Graph<CompositionNode, CompositionEdge>) =>
     edges: finalEdges
   });
 
-  return realisePatternGraph({ interfaceGraph }, flowspecs);
+  return realisePatternGraph(
+    {
+      spec: undefined,
+      accessors: {} as AccessorImplementations<PatternSpecLiteral>,
+      interfaceGraph
+    },
+    flowspecs
+  );
 };
