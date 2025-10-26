@@ -2,7 +2,6 @@ import { pattern, PatternOptions } from './pattern.js';
 import type { PatternSpecLiteral, AccessorDeclarations } from './spec.js';
 
 export interface SubgraphPatternRuntimeAccessors {
-  [key: string]: unknown;
   wrappedKey: (wrapper: { key: () => string }) => string;
 }
 

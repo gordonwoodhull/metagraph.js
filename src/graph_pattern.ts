@@ -3,7 +3,6 @@ import type { PatternSpecLiteral, AccessorDeclarations } from './spec.js';
 import type { KeyValue } from './types.js';
 
 type GraphAccessorMap = {
-  [key: string]: unknown;
   nodeKey: (kv: KeyValue<string, unknown>) => string;
   edgeKey: (kv: KeyValue<string, unknown>) => string;
   nodeValue: (kv: KeyValue<string, unknown>) => unknown;

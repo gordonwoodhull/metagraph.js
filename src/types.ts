@@ -1,4 +1,4 @@
-export interface KeyValue<K = string, V = any> {
+export interface KeyValue<K extends string = string, V = any> {
   key: K;
   value: V;
 }

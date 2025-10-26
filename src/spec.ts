@@ -11,8 +11,6 @@ import type { FlowFunction } from './types.js';
  * instantiation time (e.g. `nodeKey`, `edgeSource`). The literal portion of the
  * spec only needs the keys; concrete implementations are provided separately.
  */
-export type AccessorFunctionMap = Record<string, unknown>;
-
 export const accessorSignature: unique symbol = Symbol('accessorSignature');
 
 export interface AccessorDescriptor<TFn extends (...args: any[]) => unknown = (...args: unknown[]) => unknown> {
@@ -20,7 +18,7 @@ export interface AccessorDescriptor<TFn extends (...args: any[]) => unknown = (.
   readonly [accessorSignature]?: TFn;
 }
 
-export type AccessorDeclarations<T extends AccessorFunctionMap = AccessorFunctionMap> = {
+export type AccessorDeclarations<T extends object = Record<string, (...args: any[]) => unknown>> = {
   readonly [K in keyof T]: AccessorDescriptor<
     T[K] extends (...args: any[]) => unknown ? T[K] : (...args: any[]) => unknown
   >;
@@ -102,7 +100,7 @@ export interface InterfaceSpecLiteral {
  */
 export interface PatternSpecLiteral<
   Payloads extends PayloadBuckets = PayloadBuckets,
-  AccessorFns extends AccessorFunctionMap = AccessorFunctionMap
+  AccessorFns extends object = Record<string, (...args: any[]) => unknown>
 > {
   readonly payloads: Payloads;
   readonly accessors: AccessorDeclarations<AccessorFns>;
@@ -114,7 +112,7 @@ export interface PatternSpecLiteral<
  * Utility types that extract literal keys for downstream typing.
  */
 export type AccessorMapOf<S extends PatternSpecLiteral> =
-  S extends PatternSpecLiteral<any, infer AccessorFns> ? AccessorFns : AccessorFunctionMap;
+  S extends PatternSpecLiteral<any, infer AccessorFns> ? AccessorFns : Record<string, (...args: any[]) => unknown>;
 export type AccessorKeys<S extends PatternSpecLiteral> = Extract<keyof AccessorMapOf<S>, string>;
 export type DataflowNodeKeys<S extends PatternSpecLiteral> = Extract<keyof S['dataflow']['nodes'], string>;
 export type InterfaceNodeKeys<S extends PatternSpecLiteral> = Extract<keyof S['interface']['nodes'], string>;

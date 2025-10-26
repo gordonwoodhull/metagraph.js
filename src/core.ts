@@ -37,11 +37,15 @@ export function as_array<T>(a: T | T[] | null | undefined): T[] {
  * as_keyvalue([{key: 'x', value: 10}]) // [{key: 'x', value: 10}]
  * ```
  */
-export function as_keyvalue<V>(o: KeyValue<string, V>[] | Record<string, V> | null | undefined): KeyValue<string, V>[] {
-  return !o ? [] : (Array.isArray(o) ? o : Object.keys(o).map(key => ({
+export function as_keyvalue<K extends string, V>(
+  o: KeyValue<K, V>[] | Record<K, V> | null | undefined
+): KeyValue<K, V>[] {
+  if (!o) return [];
+  if (Array.isArray(o)) return o;
+  return (Object.keys(o) as K[]).map((key) => ({
     key,
     value: o[key]
-  })));
+  }));
 }
 
 /**
