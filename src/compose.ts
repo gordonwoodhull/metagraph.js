@@ -3,7 +3,7 @@ import { as_array } from './core.js';
 import { topological_sort } from './topological_sort.js';
 import { graph_detect } from './graph.js';
 import type { PatternSpecLiteral, AccessorImplementations } from './spec.js';
-import { toLegacyPatternSpec, buildLegacyPatternGraph } from './pattern.js';
+import { buildGraphsFromSpec, realisePatternGraph } from './pattern.js';
 
 interface CompositionNode<S extends PatternSpecLiteral = PatternSpecLiteral> {
   spec: S;
@@ -29,41 +29,43 @@ export const compose = (composition: Graph<CompositionNode, CompositionEdge>) =>
 
   sorted.forEach(patnode => {
     const { spec, accessors } = patnode.value();
-    const legacySpec = toLegacyPatternSpec(spec, accessors);
-    const flowspecGraph = graph_detect(legacySpec.dataflow);
+    const graphs = buildGraphsFromSpec(spec, accessors);
+    const flowspecGraph = graphs.flowspec;
 
-    const remappedFlowNodes = flowspecGraph.nodes().map(fnode => {
-      const value = { ...fnode.value() } as Record<string, unknown>;
-      if (value.refs) {
-        value.refs = as_array(value.refs).map((ref: string) => {
-          const parts = ref.split('.');
-          if (parts.length > 1) {
-            const edge = inputEdgeFor(patnode, parts[0]);
-            if (!edge) {
-              throw new Error(`Missing composition edge for namespace "${parts[0]}"`);
+    if (flowspecGraph) {
+      const remappedFlowNodes = flowspecGraph.nodes().map(fnode => {
+        const value = { ...fnode.value() } as Record<string, unknown>;
+        if (value.refs) {
+          value.refs = as_array(value.refs).map((ref: string) => {
+            const parts = ref.split('.');
+            if (parts.length > 1) {
+              const edge = inputEdgeFor(patnode, parts[0]);
+              if (!edge) {
+                throw new Error(`Missing composition edge for namespace "${parts[0]}"`);
+              }
+              return `${edge.source().key()}.${parts[1]}`;
             }
-            return `${edge.source().key()}.${parts[1]}`;
-          }
-          return `${patnode.key()}.${parts[0]}`;
-        });
-      }
-      return {
-        key: fnode.key(),
-        value
-      };
-    });
+            return `${patnode.key()}.${parts[0]}`;
+          });
+        }
+        return {
+          key: fnode.key(),
+          value
+        };
+      });
 
-    const remappedFlowEdges = flowspecGraph.edges().map(edge => ({
-      key: edge.key(),
-      value: edge.value()
-    }));
+      const remappedFlowEdges = flowspecGraph.edges().map(edge => ({
+        key: edge.key(),
+        value: edge.value()
+      }));
 
-    flowspecs[patnode.key()] = graph_detect({
-      nodes: remappedFlowNodes,
-      edges: remappedFlowEdges
-    });
+      flowspecs[patnode.key()] = graph_detect({
+        nodes: remappedFlowNodes,
+        edges: remappedFlowEdges
+      });
+    }
 
-    composedInterfaces[patnode.key()] = graph_detect(legacySpec.interface);
+    composedInterfaces[patnode.key()] = graphs.interfaceGraph;
   });
 
   const finalNodes: { key: string; value: unknown }[] = [];
@@ -103,13 +105,10 @@ export const compose = (composition: Graph<CompositionNode, CompositionEdge>) =>
     });
   });
 
-  return buildLegacyPatternGraph(
-    {
-      interface: {
-        nodes: finalNodes,
-        edges: finalEdges
-      }
-    },
-    flowspecs
-  );
+  const interfaceGraph = graph_detect({
+    nodes: finalNodes,
+    edges: finalEdges
+  });
+
+  return realisePatternGraph({ interfaceGraph }, flowspecs);
 };
