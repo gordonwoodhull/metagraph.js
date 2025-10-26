@@ -76,6 +76,10 @@ The runtime library becomes an interpreter that reads the frozen spec, substitut
   - Interface nodes (e.g., `Createable`, `Member`, `Call`, `Subgraph`).
   - Dataflow nodes (e.g., `Input`, `Map`, `List`, `MapOfLists`, `Subset`, `Singleton`, `Output`).
   - Dependency references (validated string literal keys).
+- Define the **accessor handshake** explicitly:
+  - The spec declares an `accessors` map type (e.g., `{ edgeSource: EdgeAccessor; groupByOwner: PortAccessor; }`).
+  - At runtime, patterns receive an object `const accessors: AccessorMap = { ... }` whose keys match the spec; missing keys should result in a descriptive runtime error.
+  - The interpreter resolves symbolic references (e.g., `LookupFVal<'edgeSource'>`) by looking up `accessors.edgeSource`.
 - Ensure the schema handles arbitrary names, not just `nodes`/`edges`.
 - Provide utility types to:
   - Extract payload types (`PayloadOf<'nodes'>`), keys, wrappers.
@@ -86,7 +90,7 @@ The runtime library becomes an interpreter that reads the frozen spec, substitut
 ### Step 2: Build Runtime Interpreters
 - Implement `interpretPattern` (replacement for `pattern()`), which:
   1. Takes a frozen spec literal (`as const`) plus a runtime `accessors` object matching the spec’s accessor map.
-  2. Materialises dataflow graphs by invoking runtime calculators corresponding to type constructors.
+  2. Materialises dataflow graphs by invoking runtime calculators corresponding to type constructors (retain the existing `calc` closures from `src/dataflow_calcs.ts`; they still execute at runtime using the resolved `defn` state).
   3. Materialises interface graphs by invoking runtime helpers (`createable`, `lookupArg`, etc.) using the supplied accessors.
   4. Produces a runtime interface graph (e.g., `Graph`) whose methods are typed according to the spec.
 - Implement `interpretCompose` (replacement for `compose()`) that operates on spec literals:
@@ -99,20 +103,25 @@ The runtime library becomes an interpreter that reads the frozen spec, substitut
 - Update `src/dataflow_calcs.ts` and `src/interface.ts` to export paired type/runtime constructors aligned with the new spec schema.
   - Each helper should return a tagged object the interpreter can recognise.
   - Provide type aliases for authoring (e.g., `MapNode<'Node', 'nodes'>`) alongside runtime constructors used by interpreters.
+- Audit both modules for lingering `any` usage before rewriting; document each case and eliminate it as part of the conversion.
 - Replace ad-hoc `any` typings with precise generics tied to payload buckets and accessors.
 
 ### Step 4: Rewrite Built-in Specs
 - Replace `graph_pattern` and `subgraph_pattern` with const-based specs:
-  - Write `const graphPatternSpec = { ... } as const` using the new constructors.
+  - Write `const graphPatternSpec = { ... } as const` using the new constructors (keep the literal readable; apply `as const` once at the end rather than sprinkling `readonly`).
   - Provide a factory function that accepts concrete accessors and returns an interpreter-produced runtime pattern.
   - For `subgraph_pattern`, ensure parent/child payload alignment is described by the spec, including any additional accessor slots needed.
 - Update `src/index.ts` exports to expose the new spec literals and factory functions.
+- Document the factory signature to preserve payload inference:
+  - Pattern factories should be generic over the input data (`create<TData extends PayloadInput<Spec>>(data: TData): GraphInstance<InferPayloads<Spec, TData>>`).
+  - Ensure TypeScript infers payload shapes from `data` so consumers do not need to annotate node/edge types manually.
 
 ### Step 5: Update Graph/Dataflow Runtimes
-- Parameterise `src/graph.ts` and `src/dataflow.ts` with types derived from the spec.
-  - Ensure `graph()` and friends consume typed data consistent with payload declarations.
-  - Wire runtime logic to pull accessor functions from the spec/accessor map instead of free-floating `opts` objects.
-- Remove unused runtime metadata now subsumed by the spec.
+- Audit `src/graph.ts` and `src/dataflow.ts` up front, listing every remaining `any`/`unknown` fallback (e.g., default generics on `GraphImpl`, casts inside `DataflowInstanceImpl`).
+- Parameterise both modules with types derived from the spec:
+  - Ensure `graph()`/`graph_incidence()` accept data matching the declared payload buckets.
+  - Wire runtime logic to pull accessor functions from the spec’s accessor map instead of ad-hoc `opts` objects.
+- Remove runtime metadata now subsumed by the spec once typings align.
 
 ### Step 6: Compose Typed Patterns
 - Refactor `src/compose.ts` to work entirely with spec literals:
@@ -125,12 +134,14 @@ The runtime library becomes an interpreter that reads the frozen spec, substitut
 - Update existing tests under `tests/` to use the new API:
   - Instantiate patterns via the new factories and verify behaviour matches previous expectations.
   - Adjust data passed to `create` to align with typed payload buckets.
+- Audit the test suite for lingering `any`/`unknown` casts; replace them with precise assertions derived from the new types.
 - Introduce type-level tests (e.g., using `tsd` or `vitest` with `expectTypeOf`) to assert:
   - Payload inference propagates through interface methods.
   - Invalid specs (missing refs, cycles, wrong accessor names) produce compile-time errors.
 - Run runtime tests to ensure behavioural parity.
 
 ### Step 8: Cleanup & Documentation
+- Audit `src/types.ts` and related modules for residual `any`/`unknown` helpers; align them with the new spec-driven exports or delete them.
 - Remove obsolete types/functions from `src/types.ts` that no longer fit the spec-driven model; move runtime guards if needed.
 - Update README/docs to explain the new spec-as-const authoring style, including examples of:
   - Declaring custom payload buckets and accessors.
@@ -150,4 +161,3 @@ The runtime library becomes an interpreter that reads the frozen spec, substitut
 - Public exports: `src/index.ts:1-29`
 
 Use these references while implementing each step to keep behaviour aligned with the existing system.
-
