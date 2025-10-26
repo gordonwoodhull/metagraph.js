@@ -1,21 +1,21 @@
 import { pattern, PatternOptions } from './pattern.js';
-import type { PatternSpecLiteral, AccessorDescriptor } from './spec.js';
+import type { PatternSpecLiteral, AccessorDeclarations } from './spec.js';
 
 export interface SubgraphPatternRuntimeAccessors {
+  [key: string]: unknown;
   wrappedKey: (wrapper: { key: () => string }) => string;
 }
 
 type SubgraphPayloads = Record<string, never>;
 
-type SubgraphAccessorDeclarations = {
-  readonly wrappedKey: AccessorDescriptor;
-};
+type SubgraphAccessorMap = SubgraphPatternRuntimeAccessors;
+type SubgraphAccessorDeclarations = AccessorDeclarations<SubgraphAccessorMap>;
 
 export const subgraphPatternSpec =
   {
   payloads: {},
   accessors: {
-    wrappedKey: {}
+    wrappedKey: {} as SubgraphAccessorDeclarations['wrappedKey']
   },
   dataflow: {
     nodes: {
@@ -91,7 +91,7 @@ export const subgraphPatternSpec =
       }
     }
   }
-} as const satisfies PatternSpecLiteral<SubgraphPayloads, SubgraphAccessorDeclarations>;
+} as const satisfies PatternSpecLiteral<SubgraphPayloads, SubgraphAccessorMap>;
 
 export const defaultSubgraphAccessors = (): SubgraphPatternRuntimeAccessors => ({
   wrappedKey: (wrapper) => wrapper.key()

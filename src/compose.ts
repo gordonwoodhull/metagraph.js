@@ -35,8 +35,10 @@ export const compose = (composition: Graph<CompositionNode, CompositionEdge>) =>
     if (flowspecGraph) {
       const remappedFlowNodes = flowspecGraph.nodes().map(fnode => {
         const value = { ...fnode.value() } as Record<string, unknown>;
-        if (value.refs) {
-          value.refs = as_array(value.refs).map((ref: string) => {
+        const refs = value.refs as string | readonly string[] | undefined;
+        if (refs) {
+          const refsArray = Array.isArray(refs) ? [...refs] : refs;
+          value.refs = as_array<string>(refsArray as string | string[] | undefined).map(ref => {
             const parts = ref.split('.');
             if (parts.length > 1) {
               const edge = inputEdgeFor(patnode, parts[0]);

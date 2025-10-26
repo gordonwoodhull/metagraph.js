@@ -1,15 +1,18 @@
 import { pattern, PatternOptions } from './pattern.js';
-import type { PatternSpecLiteral, AccessorDescriptor } from './spec.js';
+import type { PatternSpecLiteral, AccessorDeclarations } from './spec.js';
 import type { KeyValue } from './types.js';
 
-export interface GraphPatternRuntimeAccessors<N = unknown, E = unknown> {
-  nodeKey: (kv: KeyValue<string, N>) => string;
-  edgeKey: (kv: KeyValue<string, E>) => string;
-  nodeValue: (kv: KeyValue<string, N>) => N;
-  edgeValue: (kv: KeyValue<string, E>) => E;
-  edgeSource: (kv: KeyValue<string, E>) => string;
-  edgeTarget: (kv: KeyValue<string, E>) => string;
-}
+type GraphAccessorMap = {
+  [key: string]: unknown;
+  nodeKey: (kv: KeyValue<string, unknown>) => string;
+  edgeKey: (kv: KeyValue<string, unknown>) => string;
+  nodeValue: (kv: KeyValue<string, unknown>) => unknown;
+  edgeValue: (kv: KeyValue<string, unknown>) => unknown;
+  edgeSource: (kv: KeyValue<string, unknown>) => string;
+  edgeTarget: (kv: KeyValue<string, unknown>) => string;
+};
+
+export type GraphPatternRuntimeAccessors = GraphAccessorMap;
 
 type GraphPayloads = {
   readonly graph: {
@@ -18,14 +21,7 @@ type GraphPayloads = {
   };
 };
 
-type GraphAccessorDeclarations = {
-  readonly nodeKey: AccessorDescriptor;
-  readonly edgeKey: AccessorDescriptor;
-  readonly nodeValue: AccessorDescriptor;
-  readonly edgeValue: AccessorDescriptor;
-  readonly edgeSource: AccessorDescriptor;
-  readonly edgeTarget: AccessorDescriptor;
-};
+type GraphAccessorDeclarations = AccessorDeclarations<GraphAccessorMap>;
 
 export const graphPatternSpec =
   {
@@ -36,12 +32,12 @@ export const graphPatternSpec =
     }
   },
   accessors: {
-    nodeKey: {},
-    edgeKey: {},
-    nodeValue: {},
-    edgeValue: {},
-    edgeSource: {},
-    edgeTarget: {}
+    nodeKey: {} as GraphAccessorDeclarations['nodeKey'],
+    edgeKey: {} as GraphAccessorDeclarations['edgeKey'],
+    nodeValue: {} as GraphAccessorDeclarations['nodeValue'],
+    edgeValue: {} as GraphAccessorDeclarations['edgeValue'],
+    edgeSource: {} as GraphAccessorDeclarations['edgeSource'],
+    edgeTarget: {} as GraphAccessorDeclarations['edgeTarget']
   },
   dataflow: {
     nodes: {
@@ -175,24 +171,21 @@ export const graphPatternSpec =
       }
     }
   }
-} as const satisfies PatternSpecLiteral<GraphPayloads, GraphAccessorDeclarations>;
+} as const satisfies PatternSpecLiteral<GraphPayloads, GraphAccessorMap>;
 
-export const defaultGraphPatternAccessors = <
-  N = unknown,
-  E = unknown
->(): GraphPatternRuntimeAccessors<N, E> => ({
-  nodeKey: (kv: KeyValue<string, N>) => kv.key,
-  edgeKey: (kv: KeyValue<string, E>) => kv.key,
-  nodeValue: (kv: KeyValue<string, N>) => kv.value,
-  edgeValue: (kv: KeyValue<string, E>) => kv.value,
-  edgeSource: (kv: KeyValue<string, E>) => (kv.value as { source: string }).source,
-  edgeTarget: (kv: KeyValue<string, E>) => (kv.value as { target: string }).target
+export const defaultGraphPatternAccessors = (): GraphPatternRuntimeAccessors => ({
+  nodeKey: (kv: KeyValue<string, unknown>) => kv.key,
+  edgeKey: (kv: KeyValue<string, unknown>) => kv.key,
+  nodeValue: (kv: KeyValue<string, unknown>) => kv.value,
+  edgeValue: (kv: KeyValue<string, unknown>) => kv.value,
+  edgeSource: (kv: KeyValue<string, unknown>) => (kv.value as { source: string }).source,
+  edgeTarget: (kv: KeyValue<string, unknown>) => (kv.value as { target: string }).target
 });
 
-const mergeAccessors = <N, E>(
-  overrides?: Partial<GraphPatternRuntimeAccessors<N, E>>
-): GraphPatternRuntimeAccessors<N, E> => {
-  const defaults = defaultGraphPatternAccessors<N, E>();
+const mergeAccessors = (
+  overrides?: Partial<GraphPatternRuntimeAccessors>
+): GraphPatternRuntimeAccessors => {
+  const defaults = defaultGraphPatternAccessors();
   return {
     nodeKey: overrides?.nodeKey ?? defaults.nodeKey,
     edgeKey: overrides?.edgeKey ?? defaults.edgeKey,
@@ -203,8 +196,8 @@ const mergeAccessors = <N, E>(
   };
 };
 
-export const graph_pattern = <N = unknown, E = unknown>(
-  accessors?: Partial<GraphPatternRuntimeAccessors<N, E>>
+export const graph_pattern = (
+  accessors?: Partial<GraphPatternRuntimeAccessors>
 ) => {
   const runtimeAccessors = mergeAccessors(accessors);
   const options: PatternOptions<typeof graphPatternSpec> = {

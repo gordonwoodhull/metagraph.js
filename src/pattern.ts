@@ -44,7 +44,8 @@ export interface PatternOptions<S extends PatternSpecLiteral> {
 
 type AccessorResolver = (key: string) => (...args: unknown[]) => unknown;
 
-export interface PreparedPatternGraphs {
+export interface PreparedPatternGraphs<S extends PatternSpecLiteral = PatternSpecLiteral> {
+  spec?: S;
   flowspec?: Graph;
   interfaceGraph: Graph;
 }
@@ -60,22 +61,22 @@ export const pattern = <S extends PatternSpecLiteral>(
 export const buildGraphsFromSpec = <S extends PatternSpecLiteral>(
   spec: S,
   accessors: AccessorImplementations<S>
-): PreparedPatternGraphs => {
+): PreparedPatternGraphs<S> => {
   const resolveAccessor = createAccessorResolver(spec, accessors);
   return buildGraphs(spec, resolveAccessor);
 };
 
-export const realisePatternGraph = (
-  graphs: PreparedPatternGraphs,
+export const realisePatternGraph = <S extends PatternSpecLiteral>(
+  graphs: PreparedPatternGraphs<S>,
   flowspecs?: Record<string, Graph>
 ): Graph => {
-  return instantiatePattern(graphs.interfaceGraph, graphs.flowspec, flowspecs);
+  return instantiatePattern(graphs, flowspecs);
 };
 
 const buildGraphs = <S extends PatternSpecLiteral>(
   spec: S,
   resolveAccessor: AccessorResolver
-): PreparedPatternGraphs => {
+): PreparedPatternGraphs<S> => {
   const dataflowNodes = Object.entries(spec.dataflow.nodes).map(([key, literal]) => ({
     key,
     value: convertDataflowNode(literal, resolveAccessor)
@@ -101,6 +102,7 @@ const buildGraphs = <S extends PatternSpecLiteral>(
   });
 
   return {
+    spec,
     flowspec,
     interfaceGraph
   };
@@ -253,10 +255,8 @@ const convertClassMember = (name: string, descriptor: InterfaceClassMemberKind) 
         throw new Error(`Unsupported class member "${name}" for createable descriptor.`);
       }
       return createable(descriptor.flow);
-    default: {
-      const exhaustiveCheck: never = descriptor;
-      throw new Error(`Unsupported interface class member: ${(exhaustiveCheck as any).kind}`);
-    }
+    default:
+      throw new Error(`Unsupported interface class member: ${(descriptor as { kind: string }).kind}`);
   }
 };
 
@@ -277,18 +277,16 @@ const convertEdgeMember = (
       return lookupKVal();
     case 'subgraph':
       return subgraph();
-    default: {
-      const exhaustiveCheck: never = descriptor;
-      throw new Error(`Unsupported edge member kind: ${(exhaustiveCheck as any).kind}`);
-    }
+    default:
+      throw new Error(`Unsupported edge member kind: ${(descriptor as { kind: string }).kind}`);
   }
 };
 
-const instantiatePattern = (
-  interfaceGraph: Graph,
-  baseFlowspec: Graph | undefined,
+const instantiatePattern = <S extends PatternSpecLiteral>(
+  graphs: PreparedPatternGraphs<S>,
   flowspecs?: Record<string, Graph>
 ): Graph => {
+  const { interfaceGraph, flowspec: baseFlowspec } = graphs;
   const defn: PatternDefinition = { node: {}, edge: {} };
 
   interfaceGraph.nodes().forEach(inode => {
@@ -341,10 +339,10 @@ const instantiatePattern = (
     const flowspec = baseFlowspec || flowspecs?.[namespace];
 
     as_array(inode.value()).forEach((spec: Record<string, unknown>) => {
-      as_keyvalue((spec as { class_members?: Record<string, unknown> }).class_members).forEach((cmemspec: KeyValue) => {
+      as_keyvalue((spec as { class_members?: Record<string, unknown> }).class_members).forEach((cmemspec: KeyValue<string, unknown>) => {
         defn.node[nkey].class_members[cmemspec.key] = (cmemspec.value as Function)(flowspec!, inode);
       });
-      as_keyvalue((spec as { members?: Record<string, unknown> }).members).forEach((memspec: KeyValue) => {
+      as_keyvalue((spec as { members?: Record<string, unknown> }).members).forEach((memspec: KeyValue<string, unknown>) => {
         const mem = (memspec.value as Function)(flowspec!, inode);
         defn.node[nkey].members[memspec.key] = {
           accessor: mem.accessor,
