@@ -116,6 +116,7 @@ export type AccessorMapOf<S extends PatternSpecLiteral> =
 export type AccessorKeys<S extends PatternSpecLiteral> = Extract<keyof AccessorMapOf<S>, string>;
 export type DataflowNodeKeys<S extends PatternSpecLiteral> = Extract<keyof S['dataflow']['nodes'], string>;
 export type InterfaceNodeKeys<S extends PatternSpecLiteral> = Extract<keyof S['interface']['nodes'], string>;
+export type InterfaceNodeMap<S extends PatternSpecLiteral> = S['interface']['nodes'];
 
 export type PayloadsOf<S extends PatternSpecLiteral> = S['payloads'];
 export type PayloadKeys<S extends PatternSpecLiteral> = Extract<keyof PayloadsOf<S>, string>;

@@ -18,6 +18,7 @@ import type {
   InterfaceNodeLiteral,
   InterfaceEdgeLiteral
 } from './spec.js';
+import type { PatternGraphType } from './pattern_types.js';
 import {
   input,
   output,
@@ -53,7 +54,7 @@ export interface PreparedPatternGraphs<S extends PatternSpecLiteral = PatternSpe
 export const pattern = <S extends PatternSpecLiteral>(
   spec: S,
   options: PatternOptions<S>
-): Graph => {
+): PatternGraphType<S> => {
   const graphs = buildGraphsFromSpec(spec, options.accessors);
   return realisePatternGraph(graphs, options.flowspecs);
 };
@@ -69,8 +70,8 @@ export const buildGraphsFromSpec = <S extends PatternSpecLiteral>(
 export const realisePatternGraph = <S extends PatternSpecLiteral>(
   graphs: PreparedPatternGraphs<S>,
   flowspecs?: Record<string, Graph>
-): Graph => {
-  return instantiatePattern(graphs, flowspecs);
+): PatternGraphType<S> => {
+  return instantiatePattern(graphs, flowspecs) as PatternGraphType<S>;
 };
 
 const buildGraphs = <S extends PatternSpecLiteral>(
