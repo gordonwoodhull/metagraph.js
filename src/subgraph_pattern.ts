@@ -1,101 +1,117 @@
-import { GraphOptions } from './types.js';
-import { input, output, subset } from './dataflow_calcs.js';
-import { subgraph, lookupArg } from './interface.js';
+import { pattern, PatternOptions } from './pattern.js';
+import type { PatternSpecLiteral, AccessorDescriptor } from './spec.js';
 
-const graph_options = <N = any, E = any>(opts?: Partial<GraphOptions<N, E>>): GraphOptions<N, E> => 
-  Object.assign({
-    nodeKey: (kv: any) => kv.key,
-    edgeKey: (kv: any) => kv.key,
-    nodeValue: (kv: any) => kv.value,
-    edgeValue: (kv: any) => kv.value,
-    edgeSource: (kv: any) => kv.value.source,
-    edgeTarget: (kv: any) => kv.value.target
-  }, opts || {});
+export interface SubgraphPatternRuntimeAccessors {
+  wrappedKey: (wrapper: { key: () => string }) => string;
+}
 
-/**
- * Creates a subgraph pattern specification for filtering parent graphs.
- * Enables creation of subgraphs by selecting subsets of nodes and edges from parent graphs.
- * 
- * @param opts - Optional graph options for customizing node/edge accessors
- * @returns A pattern specification for creating subgraph functionality
- * 
- * @example
- * ```typescript
- * // Used in composed patterns to enable subgraph operations
- * const subPat = subgraph_pattern();
- * // Results in parent.subgraph(['nodeA', 'nodeB'], ['edge1'], data)
- * ```
- */
-export const subgraph_pattern = (opts?: any) => {
-  const options = graph_options(opts);
-  return {
-    dataflow: {
-      incidences: {
-        parent_nodes: { node: input('parent.nodes') },
-        parent_edges: { node: input('parent.edges') },
-        node_keys: { node: input('nodeKeys') },
-        edge_keys: { node: input('edgeKeys') },
-        subset_nodes: {
-          node: subset(),
-          refs: 'child.Node',
-          ins: ['parent_nodes', 'node_keys']
-        },
-        subset_edges: {
-          node: subset(),
-          refs: 'child.Edge',
-          ins: ['parent_edges', 'edge_keys']
-        },
-        nodes: {
-          node: output(),
-          ins: 'subset_nodes'
-        },
-        edges: {
-          node: output(),
-          ins: 'subset_edges'
-        }
-      }
-    },
-    interface: {
+type SubgraphPayloads = Record<string, never>;
+
+type SubgraphAccessorDeclarations = {
+  readonly wrappedKey: AccessorDescriptor;
+};
+
+export const subgraphPatternSpec =
+  {
+  payloads: {},
+  accessors: {
+    wrappedKey: {}
+  },
+  dataflow: {
+    nodes: {
+      parent_nodes: { kind: 'input', path: 'parent.nodes' },
+      parent_edges: { kind: 'input', path: 'parent.edges' },
+      node_keys: { kind: 'input', path: 'nodeKeys' },
+      edge_keys: { kind: 'input', path: 'edgeKeys' },
+      subset_nodes: {
+        kind: 'subset',
+        refs: 'child.Node',
+        ins: ['parent_nodes', 'node_keys']
+      },
+      subset_edges: {
+        kind: 'subset',
+        refs: 'child.Edge',
+        ins: ['parent_edges', 'edge_keys']
+      },
       nodes: {
-        ParentGraph: 'parent.Graph',
-        ChildGraph: 'child.Graph'
+        kind: 'output',
+        ins: 'subset_nodes'
       },
       edges: {
-        subgraph: {
-          name: 'subgraph',
-          source: 'ParentGraph', target: 'ChildGraph',
-          member: subgraph()
-        },
-        subnode: {
-          name: 'subnode',
-          source: 'ParentGraph', target: 'ChildGraph',
-          deps: 'parent.node_by_key',
-          member: lookupArg()
-        },
-        subedge: {
-          name: 'subedge',
-          source: 'ParentGraph', target: 'ChildGraph',
-          deps: 'parent.edge_by_key',
-          flow: lookupArg()
-        },
-        subgraphS: {
-          name: 'subgraph',
-          source: 'ChildGraph', target: 'ParentGraph',
-          member: subgraph()
-        },
-        subnodeS: {
-          name: 'subnode',
-          source: 'ChildGraph', target: 'ParentGraph',
-          deps: 'node_by_key', // should be child:
-          member: lookupArg((x: any) => x.key())
-        },
-        subedgeS: {
-          name: 'subedge',
-          source: 'ChildGraph', target: 'ParentGraph',
-          deps: 'edge_by_key', // should be child:
-          flow: lookupArg((x: any) => x.key())
-        }
+        kind: 'output',
+        ins: 'subset_edges'
       }
     }
+  },
+  interface: {
+    nodes: {
+      ParentGraph: 'parent.Graph',
+      ChildGraph: 'child.Graph'
+    },
+    edges: {
+      subgraph: {
+        name: 'subgraph',
+        source: 'ParentGraph',
+        target: 'ChildGraph',
+        member: { kind: 'subgraph' }
+      },
+      subnode: {
+        name: 'subnode',
+        source: 'ParentGraph',
+        target: 'ChildGraph',
+        deps: 'parent.node_by_key',
+        member: { kind: 'lookupArg' }
+      },
+      subedge: {
+        name: 'subedge',
+        source: 'ParentGraph',
+        target: 'ChildGraph',
+        deps: 'parent.edge_by_key',
+        member: { kind: 'lookupArg' }
+      },
+      subgraphS: {
+        name: 'subgraph',
+        source: 'ChildGraph',
+        target: 'ParentGraph',
+        member: { kind: 'subgraph' }
+      },
+      subnodeS: {
+        name: 'subnode',
+        source: 'ChildGraph',
+        target: 'ParentGraph',
+        deps: 'node_by_key',
+        member: { kind: 'lookupArg', accessor: 'wrappedKey' }
+      },
+      subedgeS: {
+        name: 'subedge',
+        source: 'ChildGraph',
+        target: 'ParentGraph',
+        deps: 'edge_by_key',
+        member: { kind: 'lookupArg', accessor: 'wrappedKey' }
+      }
+    }
+  }
+} as const satisfies PatternSpecLiteral<SubgraphPayloads, SubgraphAccessorDeclarations>;
+
+export const defaultSubgraphAccessors = (): SubgraphPatternRuntimeAccessors => ({
+  wrappedKey: (wrapper) => wrapper.key()
+});
+
+const mergeAccessors = (
+  overrides?: Partial<SubgraphPatternRuntimeAccessors>
+): SubgraphPatternRuntimeAccessors => {
+  const defaults = defaultSubgraphAccessors();
+  return {
+    wrappedKey: overrides?.wrappedKey ?? defaults.wrappedKey
   };
+};
+
+export const subgraph_pattern = (
+  accessors?: Partial<SubgraphPatternRuntimeAccessors>
+) => {
+  const runtimeAccessors = mergeAccessors(accessors);
+  const options: PatternOptions<typeof subgraphPatternSpec> = {
+    accessors: runtimeAccessors
+  };
+  return pattern(subgraphPatternSpec, options);
 };

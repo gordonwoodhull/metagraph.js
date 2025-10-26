@@ -1,7 +1,7 @@
 import { KeyValue, GraphOptions, Node, Edge, Graph, IncidenceOptions, GraphSpec, EdgeSourceTarget, NodeWithIncidences } from './types.js';
 import { as_array, as_keyvalue, build_map } from './core.js';
 
-function graph_options<N = any, E = any>(opts?: Partial<GraphOptions<N, E>>): GraphOptions<N, E> {
+function graph_options<N = unknown, E = unknown>(opts?: Partial<GraphOptions<N, E>>): GraphOptions<N, E> {
   return Object.assign({
     nodeKey: (kv: KeyValue<string, N>) => kv.key,
     edgeKey: (kv: KeyValue<string, E>) => kv.key,
@@ -12,7 +12,7 @@ function graph_options<N = any, E = any>(opts?: Partial<GraphOptions<N, E>>): Gr
   }, opts || {});
 }
 
-class NodeImpl<N = any, E = any> implements Node<N> {
+class NodeImpl<N = unknown, E = unknown> implements Node<N> {
   constructor(
     private n: KeyValue<string, N>,
     private options: GraphOptions<N, E>,
@@ -42,7 +42,7 @@ class NodeImpl<N = any, E = any> implements Node<N> {
   }
 }
 
-class EdgeImpl<N = any, E = any> implements Edge<E> {
+class EdgeImpl<N = unknown, E = unknown> implements Edge<E> {
   constructor(
     private e: KeyValue<string, E>,
     private options: GraphOptions<N, E>,
@@ -70,7 +70,7 @@ class EdgeImpl<N = any, E = any> implements Edge<E> {
   }
 }
 
-class GraphImpl<N = any, E = any> implements Graph<N, E> {
+class GraphImpl<N = unknown, E = unknown> implements Graph<N, E> {
   private _nodeMap?: Record<string, Node<N>>;
   private _edgeMap?: Record<string, Edge<E>>;
   private _nodesList?: Node<N>[];
@@ -179,7 +179,7 @@ class GraphImpl<N = any, E = any> implements Graph<N, E> {
  * console.log(g.node('a').outs().length); // 1
  * ```
  */
-export function graph<N = any, E = any>(
+export function graph<N = unknown, E = unknown>(
   nodes: KeyValue<string, N>[] | Record<string, N> | null | undefined,
   edges: KeyValue<string, E>[] | Record<string, E> | null | undefined,
   opts?: Partial<GraphOptions<N, E>>
@@ -191,7 +191,7 @@ export function graph<N = any, E = any>(
   return new GraphImpl(nodesList, edgesList, options);
 }
 
-function incidence_options<N = any>(opts?: Partial<IncidenceOptions<N>>): IncidenceOptions<N> {
+function incidence_options<N = unknown>(opts?: Partial<IncidenceOptions<N>>): IncidenceOptions<N> {
   const gropts = graph_options(opts);
   return Object.assign({
     nodeIncidences: (n: N) => n && ((n as NodeWithIncidences).edges || (n as NodeWithIncidences).ins || (n as NodeWithIncidences).outs) || [],
@@ -220,7 +220,7 @@ function incidence_options<N = any>(opts?: Partial<IncidenceOptions<N>>): Incide
  * console.log(g.edges().map(e => e.key())); // ['a-b', 'a-c']
  * ```
  */
-export function graph_incidence<N = any>(
+export function graph_incidence<N = unknown>(
   nodes: KeyValue<string, N>[] | Record<string, N> | null | undefined,
   opts?: Partial<IncidenceOptions<N>>
 ): Graph<N> {
@@ -280,7 +280,7 @@ export function graph_incidence<N = any>(
  * });
  * ```
  */
-export function graph_detect<N = any, E = any>(
+export function graph_detect<N = unknown, E = unknown>(
   spec: GraphSpec<N, E>,
   opts?: Partial<GraphOptions<N, E>>
 ): Graph<N, E> {

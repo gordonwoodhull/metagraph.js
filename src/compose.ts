@@ -1,102 +1,115 @@
-import { Graph } from './types.js';
-import { as_array, as_keyvalue } from './core.js';
+import type { Graph, Node as PatternNode, Edge as PatternEdge } from './types.js';
+import { as_array } from './core.js';
 import { topological_sort } from './topological_sort.js';
 import { graph_detect } from './graph.js';
-import { pattern } from './pattern.js';
+import type { PatternSpecLiteral, AccessorImplementations } from './spec.js';
+import { toLegacyPatternSpec, buildLegacyPatternGraph } from './pattern.js';
+
+interface CompositionNode<S extends PatternSpecLiteral = PatternSpecLiteral> {
+  spec: S;
+  accessors: AccessorImplementations<S>;
+}
+
+interface CompositionEdge {
+  input: string;
+}
 
 /**
- * Composes multiple graph patterns into a single unified pattern.
- * Resolves dependencies between patterns and creates a combined interface.
- * 
- * @param composition - A graph where nodes are patterns and edges define dependencies
- * @returns A composed pattern that combines all input patterns
- * 
- * @example
- * ```typescript
- * const comp = compose(graph_detect({
- *   nodes: {
- *     graph: graph_pattern(),
- *     subgraph: subgraph_pattern()
- *   },
- *   edges: {
- *     dependency: {source: 'graph', target: 'subgraph', input: 'parent'}
- *   }
- * }));
- * ```
+ * Composes multiple pattern specs into a single runtime pattern. Each node in
+ * the composition graph supplies a frozen spec literal alongside the runtime
+ * accessor implementations required by that spec.
  */
-export const compose = (composition: Graph) => {
+export const compose = (composition: Graph<CompositionNode, CompositionEdge>) => {
   const sorted = topological_sort(composition);
-  const built: Record<string, Graph> = {};
+  const composedInterfaces: Record<string, Graph> = {};
   const flowspecs: Record<string, Graph> = {};
 
-  const input_edge = (patnode: any, name: string) =>
-    patnode.ins().find((pe: any) => pe.value().input === name);
+  const inputEdgeFor = (patnode: PatternNode<CompositionNode>, name: string) =>
+    patnode.ins().find((edge: PatternEdge<CompositionEdge>) => edge.value().input === name);
 
-  // resolve dependencies and build patterns
   sorted.forEach(patnode => {
-    const flowspec = graph_detect(patnode.value().dataflow);
-    const fnodes = flowspec.nodes().map(fn => {
-      const v2 = Object.assign({}, fn.value());
-      v2.refs = as_array(v2.refs).map((ref: string) => {
-        const parts = ref.split('.');
-        if (parts.length > 1) {
-          const patedge = input_edge(patnode, parts[0]);
-          return patedge.source().key() + '.' + parts[1];
-        }
-        else return patnode.key() + '.' + parts[0];
-      });
+    const { spec, accessors } = patnode.value();
+    const legacySpec = toLegacyPatternSpec(spec, accessors);
+    const flowspecGraph = graph_detect(legacySpec.dataflow);
+
+    const remappedFlowNodes = flowspecGraph.nodes().map(fnode => {
+      const value = { ...fnode.value() } as Record<string, unknown>;
+      if (value.refs) {
+        value.refs = as_array(value.refs).map((ref: string) => {
+          const parts = ref.split('.');
+          if (parts.length > 1) {
+            const edge = inputEdgeFor(patnode, parts[0]);
+            if (!edge) {
+              throw new Error(`Missing composition edge for namespace "${parts[0]}"`);
+            }
+            return `${edge.source().key()}.${parts[1]}`;
+          }
+          return `${patnode.key()}.${parts[0]}`;
+        });
+      }
       return {
-        key: fn.key(),
-        value: v2
+        key: fnode.key(),
+        value
       };
     });
-    const fedges = flowspec.edges().map(e => ({ key: e.key(), value: e.value() }));
-    flowspecs[patnode.key()] = graph_detect({ nodes: fnodes, edges: fedges });
-    const interf = patnode.value().interface;
-    built[patnode.key()] = graph_detect({
-      nodes: interf.nodes,
-      edges: interf.edges
+
+    const remappedFlowEdges = flowspecGraph.edges().map(edge => ({
+      key: edge.key(),
+      value: edge.value()
+    }));
+
+    flowspecs[patnode.key()] = graph_detect({
+      nodes: remappedFlowNodes,
+      edges: remappedFlowEdges
     });
+
+    composedInterfaces[patnode.key()] = graph_detect(legacySpec.interface);
   });
 
-  // unite patterns
-  const nodes: any[] = [];
-  const edges: any[] = [];
-  const mappings: Record<string, string> = {};
-  
-  const lookup = (key: string) => mappings[key] || key;
+  const finalNodes: { key: string; value: unknown }[] = [];
+  const finalEdges: { key: string; value: Record<string, unknown> }[] = [];
+  const aliasMap: Record<string, string> = {};
+
+  const resolveAlias = (key: string): string => aliasMap[key] || key;
 
   sorted.forEach(patnode => {
-    const pattern = built[patnode.key()];
-    pattern.nodes().forEach(inode => {
-      const key = patnode.key() + '.' + inode.key();
-      const ref = as_array(inode.value()).find((spec: any) => typeof spec === 'string');
-      if (ref) {
-        const parts = ref.split('.');
-        const patedge = input_edge(patnode, parts[0]);
-        const key2 = lookup(patedge.source().key() + '.' + parts[1]);
-        mappings[key] = key2;
+    const interf = composedInterfaces[patnode.key()];
+    interf.nodes().forEach(inode => {
+      const composedKey = `${patnode.key()}.${inode.key()}`;
+      const alias = as_array(inode.value()).find((spec: unknown) => typeof spec === 'string');
+      if (alias && typeof alias === 'string') {
+        const [namespace, target] = alias.split('.');
+        const edge = inputEdgeFor(patnode, namespace);
+        if (!edge) {
+          throw new Error(`Missing composition edge for namespace "${namespace}"`);
+        }
+        aliasMap[composedKey] = resolveAlias(`${edge.source().key()}.${target}`);
+      } else {
+        finalNodes.push({
+          key: composedKey,
+          value: inode.value()
+        });
       }
-      else nodes.push({
-        key: key,
-        value: inode.value()
-      });
     });
-    pattern.edges().forEach(iedge => {
-      const val2 = Object.assign({}, iedge.value());
-      val2.source = lookup(patnode.key() + '.' + iedge.source().key());
-      val2.target = lookup(patnode.key() + '.' + iedge.target().key());
-      edges.push({
-        key: patnode.key() + '.' + iedge.key(),
-        value: val2
+
+    interf.edges().forEach(iedge => {
+      const edgeValue = { ...iedge.value() } as Record<string, unknown>;
+      edgeValue.source = resolveAlias(`${patnode.key()}.${iedge.source().key()}`);
+      edgeValue.target = resolveAlias(`${patnode.key()}.${iedge.target().key()}`);
+      finalEdges.push({
+        key: `${patnode.key()}.${iedge.key()}`,
+        value: edgeValue
       });
     });
   });
 
-  return pattern({
-    interface: {
-      nodes,
-      edges
-    }
-  }, flowspecs);
+  return buildLegacyPatternGraph(
+    {
+      interface: {
+        nodes: finalNodes,
+        edges: finalEdges
+      }
+    },
+    flowspecs
+  );
 };

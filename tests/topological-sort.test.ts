@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { pattern, graph_pattern, topological_sort } from '../src/index.js';
+import { graph_pattern, topological_sort } from '../src/index.js';
 
 describe('topological sort', () => {
   let graph: any;
@@ -21,7 +21,7 @@ describe('topological sort', () => {
 
   describe('adcdefg', () => {
     beforeEach(() => {
-      graph = pattern(graph_pattern()).node('Graph').value().create({
+      graph = graph_pattern().node('Graph').value().create({
         nodes: [
           { key: 'a' },
           { key: 'b' },
@@ -47,7 +47,7 @@ describe('topological sort', () => {
 
   describe('gfedcba', () => {
     beforeEach(() => {
-      graph = pattern(graph_pattern()).node('Graph').value().create({
+      graph = graph_pattern().node('Graph').value().create({
         nodes: [
           { key: 'a' },
           { key: 'b' },
@@ -73,7 +73,7 @@ describe('topological sort', () => {
 
   describe('binary tree', () => {
     beforeEach(() => {
-      graph = pattern(graph_pattern()).node('Graph').value().create({
+      graph = graph_pattern().node('Graph').value().create({
         nodes: [
           { key: 0 },
           { key: 1 },

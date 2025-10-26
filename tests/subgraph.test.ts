@@ -1,8 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { compose, graph_detect, graph_pattern, subgraph_pattern } from '../src/index.js';
+import {
+  compose,
+  graph_detect,
+  graphPatternSpec,
+  defaultGraphPatternAccessors,
+  subgraphPatternSpec,
+  defaultSubgraphAccessors
+} from '../src/index.js';
 
 describe('subgraph', () => {
-  let pattern: any;
+  let pattern;
 
   const get_key = (n: any) => n.key();
 
@@ -10,9 +17,18 @@ describe('subgraph', () => {
     beforeEach(() => {
       const graph_and_subgraph = {
         nodes: {
-          graph: graph_pattern(),
-          sg: subgraph_pattern(),
-          subgraph: graph_pattern()
+          graph: {
+            spec: graphPatternSpec,
+            accessors: defaultGraphPatternAccessors()
+          },
+          sg: {
+            spec: subgraphPatternSpec,
+            accessors: defaultSubgraphAccessors()
+          },
+          subgraph: {
+            spec: graphPatternSpec,
+            accessors: defaultGraphPatternAccessors()
+          }
         },
         edges: {
           to_sg: {

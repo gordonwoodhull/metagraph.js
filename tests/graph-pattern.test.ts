@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { pattern, graph_pattern } from '../src/index.js';
+import { graph_pattern } from '../src/index.js';
 
 describe('graph_pattern', () => {
   let graph: any;
@@ -8,7 +8,7 @@ describe('graph_pattern', () => {
 
   describe('adcdefg', () => {
     beforeEach(() => {
-      graph = pattern(graph_pattern()).node('Graph').value().create({
+      graph = graph_pattern().node('Graph').value().create({
         nodes: [
           { key: 'a' },
           { key: 'b' },
@@ -84,7 +84,7 @@ describe('graph_pattern', () => {
     let graph2: any;
 
     beforeEach(() => {
-      patternObj = pattern(graph_pattern());
+      patternObj = graph_pattern();
       graph1 = patternObj.node('Graph').value().create({
         nodes: [
           { key: 'a' },
@@ -183,7 +183,7 @@ describe('graph_pattern', () => {
         edgeTarget: vi.fn((kv: any) => kv.value.target)
       };
 
-      graph = pattern(graph_pattern(accessors)).node('Graph').value().create({
+      graph = graph_pattern(accessors).node('Graph').value().create({
         nodes: [
           { key: 'a' },
           { key: 'b' },

@@ -1,142 +1,214 @@
-import { GraphOptions } from './types.js';
-import { input, output, map, singleton, list, map_of_lists } from './dataflow_calcs.js';
-import { createable, call, fetch, lookupArg, lookupFVal, lookupKVal } from './interface.js';
+import { pattern, PatternOptions } from './pattern.js';
+import type { PatternSpecLiteral, AccessorDescriptor } from './spec.js';
+import type { KeyValue } from './types.js';
 
-const graph_options = <N = any, E = any>(opts?: Partial<GraphOptions<N, E>>): GraphOptions<N, E> => 
-  Object.assign({
-    nodeKey: (kv: any) => kv.key,
-    edgeKey: (kv: any) => kv.key,
-    nodeValue: (kv: any) => kv.value,
-    edgeValue: (kv: any) => kv.value,
-    edgeSource: (kv: any) => kv.value.source,
-    edgeTarget: (kv: any) => kv.value.target
-  }, opts || {});
+export interface GraphPatternRuntimeAccessors<N = unknown, E = unknown> {
+  nodeKey: (kv: KeyValue<string, N>) => string;
+  edgeKey: (kv: KeyValue<string, E>) => string;
+  nodeValue: (kv: KeyValue<string, N>) => N;
+  edgeValue: (kv: KeyValue<string, E>) => E;
+  edgeSource: (kv: KeyValue<string, E>) => string;
+  edgeTarget: (kv: KeyValue<string, E>) => string;
+}
 
-/**
- * Creates a standard graph pattern specification for building graph instances.
- * Defines the dataflow computation and interface for creating graph objects with nodes and edges.
- * 
- * @param opts - Optional graph options for customizing node/edge accessors
- * @returns A pattern specification that can create graph instances
- * 
- * @example
- * ```typescript
- * // Create a graph pattern and use it to build a graph
- * const pat = pattern(graph_pattern());
- * const myGraph = pat.node('Graph').value().create({
- *   nodes: [{key: 'a'}, {key: 'b'}],
- *   edges: [{key: 'edge', value: {source: 'a', target: 'b'}}]
- * });
- * ```
- */
-export const graph_pattern = (opts?: any) => {
-  const options = graph_options(opts);
-  return {
-    dataflow: {
-      incidences: {
-        nodes: { node: input() },
-        edges: { node: input() },
-        node_by_key: {
-          node: map(),
-          refs: 'Node',
-          ins: 'nodes'
-        },
-        edge_by_key: {
-          node: map(),
-          refs: 'Edge',
-          ins: 'edges'
-        },
-        graph: { node: singleton() },
-        node_list: {
-          node: list(),
-          refs: 'Node',
-          ins: ['nodes', 'node_by_key']
-        },
-        edge_list: {
-          node: list(),
-          refs: 'Edge',
-          ins: ['edges', 'edge_by_key']
-        },
-        node_outs: {
-          node: map_of_lists(options.edgeSource! as (val: unknown) => string),
-          refs: 'Node',
-          ins: ['edges', 'edge_by_key']
-        },
-        node_ins: {
-          node: map_of_lists(options.edgeTarget! as (val: unknown) => string),
-          refs: 'Node',
-          ins: ['edges', 'edge_by_key']
+type GraphPayloads = {
+  readonly graph: {
+    readonly nodes: readonly KeyValue<string, unknown>[];
+    readonly edges: readonly KeyValue<string, unknown>[];
+  };
+};
+
+type GraphAccessorDeclarations = {
+  readonly nodeKey: AccessorDescriptor;
+  readonly edgeKey: AccessorDescriptor;
+  readonly nodeValue: AccessorDescriptor;
+  readonly edgeValue: AccessorDescriptor;
+  readonly edgeSource: AccessorDescriptor;
+  readonly edgeTarget: AccessorDescriptor;
+};
+
+export const graphPatternSpec =
+  {
+  payloads: {
+    graph: {
+      nodes: [],
+      edges: []
+    }
+  },
+  accessors: {
+    nodeKey: {},
+    edgeKey: {},
+    nodeValue: {},
+    edgeValue: {},
+    edgeSource: {},
+    edgeTarget: {}
+  },
+  dataflow: {
+    nodes: {
+      nodes: { kind: 'input' },
+      edges: { kind: 'input' },
+      node_by_key: {
+        kind: 'map',
+        refs: 'Node',
+        ins: 'nodes'
+      },
+      edge_by_key: {
+        kind: 'map',
+        refs: 'Edge',
+        ins: 'edges'
+      },
+      graph: { kind: 'singleton' },
+      node_list: {
+        kind: 'list',
+        refs: 'Node',
+        ins: ['nodes', 'node_by_key']
+      },
+      edge_list: {
+        kind: 'list',
+        refs: 'Edge',
+        ins: ['edges', 'edge_by_key']
+      },
+      node_outs: {
+        kind: 'map_of_lists',
+        refs: 'Node',
+        accessor: 'edgeSource',
+        ins: ['edges', 'edge_by_key']
+      },
+      node_ins: {
+        kind: 'map_of_lists',
+        refs: 'Node',
+        accessor: 'edgeTarget',
+        ins: ['edges', 'edge_by_key']
+      }
+    }
+  },
+  interface: {
+    nodes: {
+      Graph: {
+        classMembers: {
+          create: { kind: 'createable', flow: 'graph' }
+        }
+      },
+      Node: {
+        members: {
+          key: { kind: 'call', accessor: 'nodeKey' },
+          value: { kind: 'call', accessor: 'nodeValue' }
+        }
+      },
+      Edge: {
+        members: {
+          key: { kind: 'call', accessor: 'edgeKey' },
+          value: { kind: 'call', accessor: 'edgeValue' }
         }
       }
     },
-    interface: {
-      nodes: {
-        Graph: createable('graph'),
-        Node: [call('key')(options.nodeKey! as (val: unknown) => unknown), call('value')(options.nodeValue! as (val: unknown) => unknown)],
-        Edge: [call('key')(options.edgeKey! as (val: unknown) => unknown), call('value')(options.edgeValue! as (val: unknown) => unknown)]
+    edges: {
+      graph_node: {
+        name: 'node',
+        source: 'Graph',
+        target: 'Node',
+        deps: 'node_by_key',
+        member: { kind: 'lookupArg' }
       },
-      edges: {
-        graph_node: {
-          name: 'node',
-          source: 'Graph', target: 'Node',
-          deps: 'node_by_key',
-          member: lookupArg()
-        },
-        node_graph: {
-          name: 'graph',
-          source: 'Node', target: 'Graph',
-          deps: 'graph',
-          member: fetch()
-        },
-        graph_nodes: {
-          name: 'nodes',
-          source: 'Graph', target: 'Node',
-          deps: 'node_list',
-          member: fetch()
-        },
-        graph_edge: {
-          name: 'edge',
-          source: 'Graph', target: 'Edge',
-          deps: 'edge_by_key',
-          member: lookupArg()
-        },
-        edge_graph: {
-          name: 'graph',
-          source: 'Edge', target: 'Graph',
-          deps: 'graph',
-          member: fetch()
-        },
-        graph_edges: {
-          name: 'edges',
-          source: 'Graph', target: 'Edge',
-          deps: 'edge_list',
-          member: fetch()
-        },
-        edge_source: {
-          name: 'source',
-          source: 'Edge', target: 'Node',
-          deps: 'node_by_key',
-          member: lookupFVal(options.edgeSource! as (val: unknown) => unknown)
-        },
-        edge_target: {
-          name: 'target',
-          source: 'Edge', target: 'Node',
-          deps: 'node_by_key',
-          member: lookupFVal(options.edgeTarget! as (val: unknown) => unknown)
-        },
-        node_outs: {
-          name: 'outs',
-          source: 'Node', target: 'Edge',
-          deps: 'node_outs',
-          member: lookupKVal()
-        },
-        node_ins: {
-          name: 'ins',
-          source: 'Node', target: 'Edge',
-          deps: 'node_ins',
-          member: lookupKVal()
-        }
+      node_graph: {
+        name: 'graph',
+        source: 'Node',
+        target: 'Graph',
+        deps: 'graph',
+        member: { kind: 'fetch' }
+      },
+      graph_nodes: {
+        name: 'nodes',
+        source: 'Graph',
+        target: 'Node',
+        deps: 'node_list',
+        member: { kind: 'fetch' }
+      },
+      graph_edge: {
+        name: 'edge',
+        source: 'Graph',
+        target: 'Edge',
+        deps: 'edge_by_key',
+        member: { kind: 'lookupArg' }
+      },
+      edge_graph: {
+        name: 'graph',
+        source: 'Edge',
+        target: 'Graph',
+        deps: 'graph',
+        member: { kind: 'fetch' }
+      },
+      graph_edges: {
+        name: 'edges',
+        source: 'Graph',
+        target: 'Edge',
+        deps: 'edge_list',
+        member: { kind: 'fetch' }
+      },
+      edge_source: {
+        name: 'source',
+        source: 'Edge',
+        target: 'Node',
+        deps: 'node_by_key',
+        member: { kind: 'lookupFVal', accessor: 'edgeSource' }
+      },
+      edge_target: {
+        name: 'target',
+        source: 'Edge',
+        target: 'Node',
+        deps: 'node_by_key',
+        member: { kind: 'lookupFVal', accessor: 'edgeTarget' }
+      },
+      node_outs: {
+        name: 'outs',
+        source: 'Node',
+        target: 'Edge',
+        deps: 'node_outs',
+        member: { kind: 'lookupKVal' }
+      },
+      node_ins: {
+        name: 'ins',
+        source: 'Node',
+        target: 'Edge',
+        deps: 'node_ins',
+        member: { kind: 'lookupKVal' }
       }
     }
+  }
+} as const satisfies PatternSpecLiteral<GraphPayloads, GraphAccessorDeclarations>;
+
+export const defaultGraphPatternAccessors = <
+  N = unknown,
+  E = unknown
+>(): GraphPatternRuntimeAccessors<N, E> => ({
+  nodeKey: (kv: KeyValue<string, N>) => kv.key,
+  edgeKey: (kv: KeyValue<string, E>) => kv.key,
+  nodeValue: (kv: KeyValue<string, N>) => kv.value,
+  edgeValue: (kv: KeyValue<string, E>) => kv.value,
+  edgeSource: (kv: KeyValue<string, E>) => (kv.value as { source: string }).source,
+  edgeTarget: (kv: KeyValue<string, E>) => (kv.value as { target: string }).target
+});
+
+const mergeAccessors = <N, E>(
+  overrides?: Partial<GraphPatternRuntimeAccessors<N, E>>
+): GraphPatternRuntimeAccessors<N, E> => {
+  const defaults = defaultGraphPatternAccessors<N, E>();
+  return {
+    nodeKey: overrides?.nodeKey ?? defaults.nodeKey,
+    edgeKey: overrides?.edgeKey ?? defaults.edgeKey,
+    nodeValue: overrides?.nodeValue ?? defaults.nodeValue,
+    edgeValue: overrides?.edgeValue ?? defaults.edgeValue,
+    edgeSource: overrides?.edgeSource ?? defaults.edgeSource,
+    edgeTarget: overrides?.edgeTarget ?? defaults.edgeTarget
   };
+};
+
+export const graph_pattern = <N = unknown, E = unknown>(
+  accessors?: Partial<GraphPatternRuntimeAccessors<N, E>>
+) => {
+  const runtimeAccessors = mergeAccessors(accessors);
+  const options: PatternOptions<typeof graphPatternSpec> = {
+    accessors: runtimeAccessors
+  };
+  return pattern(graphPatternSpec, options);
 };
