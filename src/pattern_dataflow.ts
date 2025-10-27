@@ -45,7 +45,7 @@ type OutputValue<
 
 type MapNode<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Key extends DataflowNodeKey<S>> =
   NodeSpec<S, Key> extends { refs: infer Ref extends string }
-    ? DataflowNodeOutput<S, A, Extract<Ref, DataflowNodeKey<S>>>
+    ? Record<string, DataflowNodeOutput<S, A, Extract<Ref, DataflowNodeKey<S>>>>
     : Record<string, unknown>;
 
 type MapOfListsNode<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Key extends DataflowNodeKey<S>> =
@@ -58,7 +58,10 @@ type ListNode<S extends PatternSpecLiteral, A extends AccessorImplementations<S>
     ? DataflowNodeOutput<S, A, Extract<Ref, DataflowNodeKey<S>>>[]
     : unknown[];
 
-type SingletonNode = unknown;
+type SingletonNode<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Key extends DataflowNodeKey<S>> =
+  NodeSpec<S, Key> extends { refs: infer Ref extends string }
+    ? DataflowNodeOutput<S, A, Extract<Ref, DataflowNodeKey<S>>>
+    : unknown;
 
 type SubsetNode<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Key extends DataflowNodeKey<S>> =
   NodeSpec<S, Key> extends { refs: infer Ref extends string }
@@ -86,5 +89,5 @@ export type DataflowNodeOutput<
             : NodeSpec<S, Key> extends { kind: 'subset' }
               ? SubsetNode<S, A, Key>
               : NodeSpec<S, Key> extends { kind: 'singleton' }
-                ? SingletonNode
+                ? SingletonNode<S, A, Key>
                 : unknown;
