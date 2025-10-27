@@ -61,18 +61,18 @@ type NodeMemberDefs<S extends PatternSpecLiteral, NodeKey extends keyof Interfac
     : {};
 
 type EdgeEntry<S extends PatternSpecLiteral, K extends keyof S['interface']['edges'] & string> =
-  S['interface']['edges'][K] extends { source: infer Source extends string; name: infer Name extends string; member: infer MemberLiteral; deps?: infer Deps }
+  S['interface']['edges'][K] extends { source: infer Source extends string; target: infer Target extends string; name: infer Name extends string; member: infer MemberLiteral; deps?: infer Deps }
     ? ToMemberSignature<MemberLiteral> extends infer MemberSpec
       ? MemberSpec extends MemberSignature
-        ? { source: Source; name: Name; member: MemberSpec; deps: NormalizeDeps<Deps> }
+        ? { source: Source; target: Target; name: Name; member: MemberSpec; deps: NormalizeDeps<Deps> }
         : never
       : never
     : never;
 
 type EdgeMemberDefs<S extends PatternSpecLiteral, NodeKey extends keyof InterfaceNodeMap<S> & string> = {
   [K in keyof S['interface']['edges'] & string as EdgeEntry<S, K> extends { source: NodeKey; name: infer Name extends string } ? Name : never]:
-    EdgeEntry<S, K> extends { member: infer MemberSpec; deps: infer Deps extends readonly string[] }
-      ? { member: MemberSpec; deps: Deps }
+    EdgeEntry<S, K> extends { member: infer MemberSpec; deps: infer Deps extends readonly string[]; target: infer Target extends string }
+      ? { member: MemberSpec; deps: Deps; target: Target }
       : never;
 };
 
@@ -92,8 +92,8 @@ type FilteredMemberDefs<S extends PatternSpecLiteral, NodeKey extends keyof Inte
     ? MemberSpec extends MemberSignature
       ? Deps extends readonly string[] ? K : never
       : never
-    : never]: MemberDefinition<S, NodeKey, K> extends { member: infer MemberSpec; deps: infer Deps extends readonly string[] }
-      ? { member: MemberSpec & MemberSignature; deps: Deps }
+    : never]: MemberDefinition<S, NodeKey, K> extends { member: infer MemberSpec; deps: infer Deps extends readonly string[]; target?: infer Target extends string }
+      ? { member: MemberSpec & MemberSignature; deps: Deps; target: Target }
       : never;
 };
 
@@ -165,7 +165,7 @@ type ResolveLookupArgMember<
   S extends PatternSpecLiteral,
   A extends AccessorImplementations<S>,
   Namespaces extends ExternalNamespaceMap,
-  Def extends { member: LookupArgMember; deps: readonly string[] }
+  Def extends { member: LookupArgMember; deps: readonly string[]; target?: string }
 > =
   (map: DependencyRecordFromTuple<DependencyTuple<S, A, Def['deps'], Namespaces>>) => (
       arg: Def['member']['accessor'] extends string
@@ -177,7 +177,7 @@ type ResolveLookupFValMember<
   S extends PatternSpecLiteral,
   A extends AccessorImplementations<S>,
   Namespaces extends ExternalNamespaceMap,
-  Def extends { deps: readonly string[] }
+  Def extends { deps: readonly string[]; target?: string }
 > =
   (map: DependencyRecordFromTuple<DependencyTuple<S, A, Def['deps'], Namespaces>>) => () => DependencyRecordValueFromTuple<DependencyTuple<S, A, Def['deps'], Namespaces>>;
 
@@ -185,7 +185,7 @@ type ResolveLookupKValMember<
   S extends PatternSpecLiteral,
   A extends AccessorImplementations<S>,
   Namespaces extends ExternalNamespaceMap,
-  Def extends { deps: readonly string[] }
+  Def extends { deps: readonly string[]; target?: string }
 > =
   (map: DependencyRecordFromTuple<DependencyTuple<S, A, Def['deps'], Namespaces>>) => () => FirstDependency<S, A, Def['deps'], Namespaces> extends Record<string, infer Value extends unknown[]>
       ? Value
@@ -195,17 +195,24 @@ type ResolveFetchMember<
   S extends PatternSpecLiteral,
   A extends AccessorImplementations<S>,
   Namespaces extends ExternalNamespaceMap,
-  Def extends { deps: readonly string[] }
+  Def extends { deps: readonly string[]; target?: string }
 > =
   (value: FirstDependency<S, A, Def['deps'], Namespaces>) => () => FirstDependency<S, A, Def['deps'], Namespaces>;
 
-type ResolveSubgraphMember = () => (...args: unknown[]) => Graph;
+type ResolveSubgraphMember<
+  S extends PatternSpecLiteral,
+  A extends AccessorImplementations<S>,
+  Namespaces extends ExternalNamespaceMap,
+  Def extends { target?: string }
+> = Def['target'] extends string
+  ? () => (nodeKeys: string[], edgeKeys: string[], payload: unknown) => InferNodeShape<S, A, Extract<Def['target'], string>, Namespaces>
+  : () => (...args: unknown[]) => Graph;
 
 type ResolveMember<
   S extends PatternSpecLiteral,
   A extends AccessorImplementations<S>,
   Namespaces extends ExternalNamespaceMap,
-  Def extends { member: MemberSignature; deps: readonly string[] }
+  Def extends { member: MemberSignature; deps: readonly string[]; target?: string }
 > =
   Def['member'] extends CallSignature<infer K>
     ? ResolveCallMember<S, A, K>
@@ -217,7 +224,7 @@ type ResolveMember<
           ? ResolveLookupKValMember<S, A, Namespaces, Def>
           : Def['member'] extends FetchMember
             ? ResolveFetchMember<S, A, Namespaces, Def>
-            : ResolveSubgraphMember;
+            : ResolveSubgraphMember<S, A, Namespaces, Def>;
 
 export type InferClassMembers<
   S extends PatternSpecLiteral,
