@@ -1,4 +1,5 @@
 import type { PatternSpecLiteral, AccessorImplementations, AccessorKeys, AccessorFunction, InterfaceNodeMap } from './spec.js';
+import type { DataflowNodeKey, DataflowNodeOutput } from './pattern_dataflow.js';
 import type { Member } from './interface.js';
 import type { Graph, Node } from './types.js';
 
@@ -39,41 +40,127 @@ type ClassMemberMap<S extends PatternSpecLiteral, NodeKey extends keyof Interfac
       : {}
     : {};
 
- type MemberMap<S extends PatternSpecLiteral, NodeKey extends keyof InterfaceNodeMap<S> & string> =
-  InterfaceNodeMap<S>[NodeKey] extends infer NodeLiteral
-    ? NodeLiteral extends { members: Record<string, MemberSignature> }
-      ? NodeLiteral['members']
+type NormalizeDeps<D> = D extends readonly string[] ? D : D extends string ? readonly [D] : readonly [];
+
+type ToMemberSignature<M> =
+  M extends { kind: 'call'; accessor: infer Accessor extends string }
+    ? CallSignature<Accessor>
+    : M extends Member
+      ? M
+      : never;
+
+type NodeMemberDefs<S extends PatternSpecLiteral, NodeKey extends keyof InterfaceNodeMap<S> & string> =
+  InterfaceNodeMap<S>[NodeKey] extends { members: infer Members }
+    ? Members extends Record<string, infer MemberLiteral>
+      ? { [K in keyof Members & string]: ToMemberSignature<MemberLiteral> extends infer Sig
+          ? Sig extends MemberSignature
+            ? { member: Sig; deps: readonly [] }
+            : never
+          : never }
       : {}
     : {};
 
-// Member resolution helpers (placeholders for now; will be refined as calculators are typed)
+type EdgeEntry<S extends PatternSpecLiteral, K extends keyof S['interface']['edges'] & string> =
+  S['interface']['edges'][K] extends { source: infer Source extends string; name: infer Name extends string; member: infer MemberLiteral; deps?: infer Deps }
+    ? ToMemberSignature<MemberLiteral> extends infer MemberSpec
+      ? MemberSpec extends MemberSignature
+        ? { source: Source; name: Name; member: MemberSpec; deps: NormalizeDeps<Deps> }
+        : never
+      : never
+    : never;
+
+type EdgeMemberDefs<S extends PatternSpecLiteral, NodeKey extends keyof InterfaceNodeMap<S> & string> = {
+  [K in keyof S['interface']['edges'] & string as EdgeEntry<S, K> extends { source: NodeKey; name: infer Name extends string } ? Name : never]:
+    EdgeEntry<S, K> extends { member: infer MemberSpec; deps: infer Deps extends readonly string[] }
+      ? { member: MemberSpec; deps: Deps }
+      : never;
+};
+
+type NodeMemberNames<S extends PatternSpecLiteral, NodeKey extends keyof InterfaceNodeMap<S> & string> = keyof NodeMemberDefs<S, NodeKey> & string;
+type EdgeMemberNames<S extends PatternSpecLiteral, NodeKey extends keyof InterfaceNodeMap<S> & string> = keyof EdgeMemberDefs<S, NodeKey> & string;
+type AllMemberNames<S extends PatternSpecLiteral, NodeKey extends keyof InterfaceNodeMap<S> & string> = NodeMemberNames<S, NodeKey> | EdgeMemberNames<S, NodeKey>;
+
+type MemberDefinition<S extends PatternSpecLiteral, NodeKey extends keyof InterfaceNodeMap<S> & string, Name extends AllMemberNames<S, NodeKey>> =
+  Name extends keyof NodeMemberDefs<S, NodeKey>
+    ? NodeMemberDefs<S, NodeKey>[Name]
+    : Name extends keyof EdgeMemberDefs<S, NodeKey>
+      ? EdgeMemberDefs<S, NodeKey>[Name]
+      : never;
+
+type FilteredMemberDefs<S extends PatternSpecLiteral, NodeKey extends keyof InterfaceNodeMap<S> & string> = {
+  [K in AllMemberNames<S, NodeKey> as MemberDefinition<S, NodeKey, K> extends { member: infer MemberSpec; deps: infer Deps }
+    ? MemberSpec extends MemberSignature
+      ? Deps extends readonly string[] ? K : never
+      : never
+    : never]: MemberDefinition<S, NodeKey, K> extends { member: infer MemberSpec; deps: infer Deps extends readonly string[] }
+      ? { member: MemberSpec & MemberSignature; deps: Deps }
+      : never;
+};
+
+// Member resolution helpers
 type ResolveCallMember<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, K extends string> =
   () => ReturnType<AccessorImplementation<S, A, Extract<K, AccessorKeys<S>>>>;
 
-type ResolveLookupArgMember<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, M extends LookupArgMember> =
-  M['accessor'] extends string
-    ? (map: Record<string, unknown>) => (arg: ReturnType<AccessorImplementation<S, A, Extract<M['accessor'], AccessorKeys<S>>>>) => unknown
-    : (map: Record<string, unknown>) => (arg: unknown) => unknown;
+type DependencyOutput<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Dep extends string> =
+  Dep extends `${infer Namespace}.${infer Rest}`
+    ? Rest extends DataflowNodeKey<S>
+      ? DataflowNodeOutput<S, A, Rest, Namespace>
+      : unknown
+    : Dep extends DataflowNodeKey<S>
+      ? DataflowNodeOutput<S, A, Dep>
+      : unknown;
 
-type ResolveLookupFValMember = () => (map: Record<string, unknown>) => () => unknown;
+type DependencyOutputs<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Deps extends readonly string[]> =
+  Deps extends readonly [infer First extends string, ...infer Rest extends readonly string[]]
+    ? [DependencyOutput<S, A, First>, ...DependencyOutputs<S, A, Rest>]
+    : [];
 
-type ResolveLookupKValMember = () => (map: Record<string, unknown>) => () => unknown;
+type FirstDependency<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Deps extends readonly string[]> =
+  Deps extends readonly [infer First extends string, ...any]
+    ? DependencyOutput<S, A, First>
+    : unknown;
 
-type ResolveFetchMember = () => (arg: unknown) => () => unknown;
+type ResolveLookupArgMember<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Def extends { member: LookupArgMember; deps: readonly string[] }> =
+  (map: FirstDependency<S, A, Def['deps']> extends Record<string, infer Value>
+    ? Record<string, Value>
+    : Record<string, unknown>) => (
+      arg: Def['member']['accessor'] extends string
+        ? ReturnType<AccessorImplementation<S, A, Extract<Def['member']['accessor'], AccessorKeys<S>>>>
+        : unknown
+    ) => FirstDependency<S, A, Def['deps']> extends Record<string, infer Value>
+      ? Value
+      : unknown;
+
+type ResolveLookupFValMember<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Def extends { deps: readonly string[] }> =
+  (map: FirstDependency<S, A, Def['deps']> extends Record<string, infer Value>
+    ? Record<string, Value>
+    : Record<string, unknown>) => () => FirstDependency<S, A, Def['deps']> extends Record<string, infer Value>
+      ? Value
+      : unknown;
+
+type ResolveLookupKValMember<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Def extends { deps: readonly string[] }> =
+  (map: FirstDependency<S, A, Def['deps']> extends Record<string, infer Value>
+    ? Record<string, Value>
+    : Record<string, unknown>) => () => FirstDependency<S, A, Def['deps']> extends Record<string, infer Value extends unknown[]>
+      ? Value
+      : unknown[];
+
+type ResolveFetchMember<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Def extends { deps: readonly string[] }> =
+  (value: FirstDependency<S, A, Def['deps']>) => () => FirstDependency<S, A, Def['deps']>;
 
 type ResolveSubgraphMember = () => (...args: unknown[]) => Graph;
 
-type ResolveMember<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Signature extends MemberSignature> =
-  Signature extends CallSignature<infer K>
+type ResolveMember<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Def extends { member: MemberSignature; deps: readonly string[] }> =
+  Def['member'] extends CallSignature<infer K>
     ? ResolveCallMember<S, A, K>
-    : Signature extends LookupArgMember
-      ? ResolveLookupArgMember<S, A, Signature>
-      : Signature extends LookupFValMember
-        ? ResolveLookupFValMember
-        : Signature extends LookupKValMember
-          ? ResolveLookupKValMember
-          : Signature extends FetchMember
-            ? ResolveFetchMember
+    : Def['member'] extends LookupArgMember
+      ? ResolveLookupArgMember<S, A, Def & { member: LookupArgMember }>
+      : Def['member'] extends LookupFValMember
+        ? ResolveLookupFValMember<S, A, Def>
+        : Def['member'] extends LookupKValMember
+          ? ResolveLookupKValMember<S, A, Def>
+          : Def['member'] extends FetchMember
+            ? ResolveFetchMember<S, A, Def>
             : ResolveSubgraphMember;
 
 export type InferClassMembers<
@@ -87,8 +174,8 @@ export type InferClassMembers<
 };
 
 export type InferMembers<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, NodeKey extends keyof InterfaceNodeMap<S> & string> = {
-  readonly [K in keyof MemberMap<S, NodeKey>]: MemberMap<S, NodeKey>[K] extends MemberSignature
-    ? ResolveMember<S, A, MemberMap<S, NodeKey>[K]>
+  readonly [K in keyof FilteredMemberDefs<S, NodeKey>]: FilteredMemberDefs<S, NodeKey>[K] extends { member: infer MemberSpec; deps: infer Deps extends readonly string[] }
+    ? ResolveMember<S, A, { member: MemberSpec & MemberSignature; deps: Deps }>
     : never;
 };
 
