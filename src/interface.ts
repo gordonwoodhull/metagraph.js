@@ -4,6 +4,13 @@ type MemberFactory<K extends string, Fn extends (...args: any[]) => unknown> = F
   kind: K;
   build: Fn;
 };
+
+export type Member =
+  | { kind: 'fetch' }
+  | { kind: 'lookupArg'; accessor?: string }
+  | { kind: 'lookupFVal'; accessor: string }
+  | { kind: 'lookupKVal' }
+  | { kind: 'subgraph' };
 import { as_array } from './core.js';
 import { define_dataflow } from './pattern.js';
 
