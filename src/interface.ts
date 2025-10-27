@@ -1,4 +1,9 @@
 import { InterfaceSpec, PatternDefinition, DataflowInstance, Graph, Edge, Node, FlowFunction } from './types.js';
+
+type MemberFactory<K extends string, Fn extends (...args: any[]) => unknown> = Fn & {
+  kind: K;
+  build: Fn;
+};
 import { as_array } from './core.js';
 import { define_dataflow } from './pattern.js';
 
@@ -82,11 +87,13 @@ export const reference = (inode: Node) => ({
  * 
  * @returns An interface specification for fetching data
  */
-export const fetch = () => ({
-  funfun: (flowspec: Graph, iedge: Edge) => 
-    (defn: PatternDefinition, flow: DataflowInstance) => 
+const fetchFactory = () => ({
+  funfun: (flowspec: Graph, iedge: Edge) =>
+    (defn: PatternDefinition, flow: DataflowInstance) =>
       (x: unknown) => () => x
 });
+
+export const fetch = Object.assign(fetchFactory, { kind: 'fetch' as const, build: fetchFactory }) as MemberFactory<'fetch', typeof fetchFactory>;
 
 /**
  * Creates an interface method that looks up values in a map using function arguments.
@@ -104,14 +111,16 @@ export const fetch = () => ({
  * const idLookup = lookupArg(key => key.id);
  * ```
  */
-export const lookupArg = (access?: (x: unknown) => unknown) => ({
+const lookupArgFactory = (access?: (x: unknown) => unknown) => ({
   funfun: (flowspec: Graph, iedge: Edge) => {
     const accessor = access || ((x: unknown) => x);
-    return (defn: PatternDefinition, flow: DataflowInstance, val: unknown) => 
-      (map: Record<string, unknown>) => 
+    return (defn: PatternDefinition, flow: DataflowInstance, val: unknown) =>
+      (map: Record<string, unknown>) =>
         (key: unknown) => map[accessor(key) as string];
   }
 });
+
+export const lookupArg = Object.assign(lookupArgFactory, { kind: 'lookupArg' as const, build: lookupArgFactory }) as MemberFactory<'lookupArg', typeof lookupArgFactory>;
 
 /**
  * Creates an interface method that looks up values in a map using the object's own value.
@@ -126,11 +135,13 @@ export const lookupArg = (access?: (x: unknown) => unknown) => ({
  * const sourceLookup = lookupFVal(edge => edge.source);
  * ```
  */
-export const lookupFVal = (access: (val: unknown) => unknown) => ({
+const lookupFValFactory = (access: (val: unknown) => unknown) => ({
   funfun: (flowspec: Graph, iedge: Edge) =>
     (defn: PatternDefinition, flow: DataflowInstance, val: unknown) =>
       (map: Record<string, unknown>) => () => map[access(val) as string]
 });
+
+export const lookupFVal = Object.assign(lookupFValFactory, { kind: 'lookupFVal' as const, build: lookupFValFactory }) as MemberFactory<'lookupFVal', typeof lookupFValFactory>;
 
 /**
  * Creates an interface method that looks up values using the source node's key accessor.
@@ -144,12 +155,14 @@ export const lookupFVal = (access: (val: unknown) => unknown) => ({
  * const nodeOuts = lookupKVal();
  * ```
  */
-export const lookupKVal = () => ({
+const lookupKValFactory = () => ({
   funfun: (flowspec: Graph, iedge: Edge) =>
     (defn: PatternDefinition, flow: DataflowInstance, val: unknown) =>
       (map: Record<string, unknown>) => () =>
         map[(defn.node[iedge.source().key()].members.key.accessor as (val: unknown) => string)(val)] || []
 });
+
+export const lookupKVal = Object.assign(lookupKValFactory, { kind: 'lookupKVal' as const, build: lookupKValFactory }) as MemberFactory<'lookupKVal', typeof lookupKValFactory>;
 
 /**
  * Creates an interface method for generating subgraphs from a parent graph.
@@ -163,7 +176,7 @@ export const lookupKVal = () => ({
  * const subgraphMethod = subgraph();
  * ```
  */
-export const subgraph = () => ({
+const subgraphFactory = () => ({
   funfun: (flowspec: Graph, iedge: Edge, flowspecs?: Record<string, Graph>) =>
     (defn: PatternDefinition, flow: DataflowInstance, val: unknown) => {
       const subflow = define_dataflow(flowspec, defn);
@@ -190,3 +203,5 @@ export const subgraph = () => ({
       };
     }
 });
+
+export const subgraph = Object.assign(subgraphFactory, { kind: 'subgraph' as const, build: subgraphFactory }) as MemberFactory<'subgraph', typeof subgraphFactory>;
