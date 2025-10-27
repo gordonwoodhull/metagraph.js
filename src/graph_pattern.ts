@@ -2,6 +2,7 @@ import { pattern, PatternOptions } from './pattern.js';
 import type { PatternSpecLiteral, AccessorDeclarations } from './spec.js';
 import type { KeyValue } from './types.js';
 import type { PatternGraphType } from './pattern_types.js';
+import type { DataflowOutputs } from './pattern_dataflow.js';
 
 type GraphAccessorMap = {
   nodeKey: (kv: KeyValue<string, unknown>) => string;
@@ -13,6 +14,9 @@ type GraphAccessorMap = {
 };
 
 export type GraphPatternRuntimeAccessors = GraphAccessorMap;
+
+export type GraphDataflowNamespace<A extends GraphPatternRuntimeAccessors> =
+  DataflowOutputs<typeof graphPatternSpec, A>;
 
 type GraphPayloads = {
   readonly graph: {

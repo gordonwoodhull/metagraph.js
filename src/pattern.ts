@@ -19,6 +19,7 @@ import type {
   InterfaceEdgeLiteral
 } from './spec.js';
 import type { PatternGraphType } from './pattern_types.js';
+import type { ExternalNamespaceMap } from './pattern_dataflow.js';
 import {
   input,
   output,
@@ -38,8 +39,13 @@ import {
   subgraph
 } from './interface.js';
 
-export interface PatternOptions<S extends PatternSpecLiteral, A extends AccessorImplementations<S> = AccessorImplementations<S>> {
+export interface PatternOptions<
+  S extends PatternSpecLiteral,
+  A extends AccessorImplementations<S> = AccessorImplementations<S>,
+  Namespaces extends ExternalNamespaceMap = {}
+> {
   accessors: A;
+  namespaces?: Namespaces;
   flowspecs?: Record<string, Graph>;
 }
 
@@ -47,42 +53,62 @@ type AccessorResolver = (key: string) => (...args: unknown[]) => unknown;
 
 export interface PreparedPatternGraphs<
   S extends PatternSpecLiteral = PatternSpecLiteral,
-  A extends AccessorImplementations<S> = AccessorImplementations<S>
+  A extends AccessorImplementations<S> = AccessorImplementations<S>,
+  Namespaces extends ExternalNamespaceMap = {}
 > {
   spec?: S;
   accessors: A;
   flowspec?: Graph;
   interfaceGraph: Graph;
+  namespaces?: Namespaces;
 }
 
-export const pattern = <S extends PatternSpecLiteral, A extends AccessorImplementations<S>>(
+export const pattern = <
+  S extends PatternSpecLiteral,
+  A extends AccessorImplementations<S>,
+  Namespaces extends ExternalNamespaceMap = {}
+>(
   spec: S,
-  options: PatternOptions<S, A>
-): PatternGraphType<S, A> => {
-  const graphs = buildGraphsFromSpec(spec, options.accessors);
+  options: PatternOptions<S, A, Namespaces>
+): PatternGraphType<S, A, Namespaces> => {
+  const graphs = buildGraphsFromSpec(spec, options.accessors, options.namespaces);
   return realisePatternGraph(graphs, options.flowspecs);
 };
 
-export const buildGraphsFromSpec = <S extends PatternSpecLiteral, A extends AccessorImplementations<S>>(
-  spec: S,
-  accessors: A
-): PreparedPatternGraphs<S, A> => {
-  const resolveAccessor = createAccessorResolver(spec, accessors);
-  return buildGraphs(spec, accessors, resolveAccessor);
-};
-
-export const realisePatternGraph = <S extends PatternSpecLiteral, A extends AccessorImplementations<S>>(
-  graphs: PreparedPatternGraphs<S, A>,
-  flowspecs?: Record<string, Graph>
-): PatternGraphType<S, A> => {
-  return instantiatePattern(graphs, flowspecs) as PatternGraphType<S, A>;
-};
-
-const buildGraphs = <S extends PatternSpecLiteral, A extends AccessorImplementations<S>>(
+export const buildGraphsFromSpec = <
+  S extends PatternSpecLiteral,
+  A extends AccessorImplementations<S>,
+  Namespaces extends ExternalNamespaceMap = {}
+>(
   spec: S,
   accessors: A,
-  resolveAccessor: AccessorResolver
-): PreparedPatternGraphs<S, A> => {
+  namespaces?: Namespaces
+): PreparedPatternGraphs<S, A, Namespaces> => {
+  const resolveAccessor = createAccessorResolver(spec, accessors);
+  return buildGraphs(spec, accessors, resolveAccessor, namespaces);
+};
+
+export const realisePatternGraph = <
+  S extends PatternSpecLiteral,
+  A extends AccessorImplementations<S>,
+  Namespaces extends ExternalNamespaceMap = {}
+>(
+  graphs: PreparedPatternGraphs<S, A, Namespaces>,
+  flowspecs?: Record<string, Graph>
+): PatternGraphType<S, A, Namespaces> => {
+  return instantiatePattern(graphs, flowspecs) as PatternGraphType<S, A, Namespaces>;
+};
+
+const buildGraphs = <
+  S extends PatternSpecLiteral,
+  A extends AccessorImplementations<S>,
+  Namespaces extends ExternalNamespaceMap = {}
+>(
+  spec: S,
+  accessors: A,
+  resolveAccessor: AccessorResolver,
+  namespaces?: Namespaces
+): PreparedPatternGraphs<S, A, Namespaces> => {
   const dataflowNodes = Object.entries(spec.dataflow.nodes).map(([key, literal]) => ({
     key,
     value: convertDataflowNode(literal, resolveAccessor)
@@ -111,7 +137,8 @@ const buildGraphs = <S extends PatternSpecLiteral, A extends AccessorImplementat
     spec,
     accessors,
     flowspec,
-    interfaceGraph
+    interfaceGraph,
+    namespaces
   };
 };
 

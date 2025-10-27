@@ -4,6 +4,8 @@ import { topological_sort } from './topological_sort.js';
 import { graph_detect } from './graph.js';
 import type { PatternSpecLiteral, AccessorImplementations } from './spec.js';
 import { buildGraphsFromSpec, realisePatternGraph } from './pattern.js';
+import type { PatternGraphType } from './pattern_types.js';
+import type { ExternalNamespaceMap, DataflowOutputs } from './pattern_dataflow.js';
 
 interface CompositionNode<S extends PatternSpecLiteral = PatternSpecLiteral> {
   spec: S;
@@ -19,18 +21,29 @@ interface CompositionEdge {
  * the composition graph supplies a frozen spec literal alongside the runtime
  * accessor implementations required by that spec.
  */
-export const compose = (composition: Graph<CompositionNode, CompositionEdge>) => {
+export const compose = (
+  composition: Graph<CompositionNode, CompositionEdge>,
+  namespaces?: ExternalNamespaceMap
+): PatternGraphType<PatternSpecLiteral, AccessorImplementations<PatternSpecLiteral>, ExternalNamespaceMap> => {
   const sorted = topological_sort(composition);
   const composedInterfaces: Record<string, Graph> = {};
   const flowspecs: Record<string, Graph> = {};
+  const namespaceOutputs: Record<string, Record<string, unknown>> = {};
 
   const inputEdgeFor = (patnode: PatternNode<CompositionNode>, name: string) =>
     patnode.ins().find((edge: PatternEdge<CompositionEdge>) => edge.value().input === name);
 
   sorted.forEach(patnode => {
     const { spec, accessors } = patnode.value();
-    const graphs = buildGraphsFromSpec(spec, accessors);
+    const incomingNamespaces: ExternalNamespaceMap = {};
+    patnode.ins().forEach(edge => {
+      const srcKey = edge.source().key();
+      incomingNamespaces[edge.value().input] = namespaceOutputs[srcKey] || {};
+    });
+
+    const graphs = buildGraphsFromSpec(spec, accessors, incomingNamespaces);
     const flowspecGraph = graphs.flowspec;
+    namespaceOutputs[patnode.key()] = {} as DataflowOutputs<typeof spec, typeof accessors>;
 
     if (flowspecGraph) {
       const remappedFlowNodes = flowspecGraph.nodes().map(fnode => {
@@ -112,11 +125,20 @@ export const compose = (composition: Graph<CompositionNode, CompositionEdge>) =>
     edges: finalEdges
   });
 
+  const composedNamespaces: ExternalNamespaceMap = namespaces
+    ? { ...(namespaces as ExternalNamespaceMap) }
+    : {};
+
+  Object.keys(namespaceOutputs).forEach(key => {
+    composedNamespaces[key] = namespaceOutputs[key];
+  });
+
   return realisePatternGraph(
     {
       spec: undefined,
       accessors: {} as AccessorImplementations<PatternSpecLiteral>,
-      interfaceGraph
+      interfaceGraph,
+      namespaces: composedNamespaces
     },
     flowspecs
   );

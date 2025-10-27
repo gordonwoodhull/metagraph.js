@@ -1,6 +1,7 @@
 import { pattern, PatternOptions } from './pattern.js';
 import type { PatternSpecLiteral, AccessorDeclarations } from './spec.js';
 import type { PatternGraphType } from './pattern_types.js';
+import type { GraphPatternRuntimeAccessors, GraphDataflowNamespace } from './graph_pattern.js';
 
 export interface SubgraphPatternRuntimeAccessors {
   wrappedKey: (wrapper: { key: () => string }) => string;
@@ -11,6 +12,14 @@ type SubgraphPayloads = Record<string, never>;
 type SubgraphAccessorMap = SubgraphPatternRuntimeAccessors;
 
 type SubgraphAccessorDeclarations = AccessorDeclarations<SubgraphAccessorMap>;
+
+export type SubgraphNamespaces<
+  ParentAccessors extends GraphPatternRuntimeAccessors = GraphPatternRuntimeAccessors,
+  ChildAccessors extends GraphPatternRuntimeAccessors = GraphPatternRuntimeAccessors
+> = {
+  readonly parent: GraphDataflowNamespace<ParentAccessors>;
+  readonly child: GraphDataflowNamespace<ChildAccessors>;
+};
 
 export const subgraphPatternSpec =
   {
@@ -98,18 +107,43 @@ export const defaultSubgraphAccessors = (): SubgraphPatternRuntimeAccessors => (
   wrappedKey: (wrapper) => wrapper.key()
 });
 
-export function subgraph_pattern(): PatternGraphType<typeof subgraphPatternSpec, SubgraphPatternRuntimeAccessors>;
-export function subgraph_pattern<A extends SubgraphPatternRuntimeAccessors>(accessors: A): PatternGraphType<typeof subgraphPatternSpec, A>;
+export function subgraph_pattern<
+  ParentAccessors extends GraphPatternRuntimeAccessors = GraphPatternRuntimeAccessors,
+  ChildAccessors extends GraphPatternRuntimeAccessors = GraphPatternRuntimeAccessors
+>(): PatternGraphType<typeof subgraphPatternSpec, SubgraphPatternRuntimeAccessors, SubgraphNamespaces<ParentAccessors, ChildAccessors>>;
+export function subgraph_pattern<
+  A extends SubgraphPatternRuntimeAccessors,
+  ParentAccessors extends GraphPatternRuntimeAccessors = GraphPatternRuntimeAccessors,
+  ChildAccessors extends GraphPatternRuntimeAccessors = GraphPatternRuntimeAccessors
+>(accessors: A): PatternGraphType<typeof subgraphPatternSpec, A, SubgraphNamespaces<ParentAccessors, ChildAccessors>>;
 export function subgraph_pattern(accessors?: SubgraphPatternRuntimeAccessors) {
   if (accessors) {
-    const options: PatternOptions<typeof subgraphPatternSpec, typeof accessors> = {
-      accessors
+    const options: PatternOptions<
+      typeof subgraphPatternSpec,
+      typeof accessors,
+      SubgraphNamespaces
+    > = {
+      accessors,
+      namespaces: {} as SubgraphNamespaces
     };
-    return pattern(subgraphPatternSpec, options);
+    return pattern<
+      typeof subgraphPatternSpec,
+      typeof accessors,
+      SubgraphNamespaces
+    >(subgraphPatternSpec, options);
   }
   const defaults = defaultSubgraphAccessors();
-  const options: PatternOptions<typeof subgraphPatternSpec, typeof defaults> = {
-    accessors: defaults
+  const options: PatternOptions<
+    typeof subgraphPatternSpec,
+    typeof defaults,
+    SubgraphNamespaces
+  > = {
+    accessors: defaults,
+    namespaces: {} as SubgraphNamespaces
   };
-  return pattern(subgraphPatternSpec, options);
+  return pattern<
+    typeof subgraphPatternSpec,
+    typeof defaults,
+    SubgraphNamespaces
+  >(subgraphPatternSpec, options);
 }

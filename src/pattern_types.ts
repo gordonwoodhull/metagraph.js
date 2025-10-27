@@ -249,7 +249,11 @@ export type InferNodeShape<
 > =
   InferMembers<S, A, NodeKey, Namespaces> & InferClassMembers<S, A, NodeKey, Namespaces>;
 
-export type PatternGraphType<S extends PatternSpecLiteral, A extends AccessorImplementations<S>> = Graph & {
-  node<Key extends keyof InterfaceNodeMap<S> & string>(key: Key): Node<InferNodeShape<S, A, Key>>;
+export type PatternGraphType<
+  S extends PatternSpecLiteral,
+  A extends AccessorImplementations<S>,
+  Namespaces extends ExternalNamespaceMap = {}
+> = Graph & {
+  node<Key extends keyof InterfaceNodeMap<S> & string>(key: Key): Node<InferNodeShape<S, A, Key, Namespaces>>;
   node(key: string): Node<unknown>;
 };

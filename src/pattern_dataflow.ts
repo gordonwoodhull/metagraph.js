@@ -175,3 +175,11 @@ export type DataflowNodeOutput<
               : NodeSpec<S, Key> extends { kind: 'singleton' }
                 ? SingletonNode<S, A, Key, Namespaces>
                 : unknown;
+
+export type DataflowOutputs<
+  S extends PatternSpecLiteral,
+  A extends AccessorImplementations<S>,
+  Namespaces extends ExternalNamespaceMap = {}
+> = {
+  readonly [K in DataflowNodeKey<S>]: DataflowNodeOutput<S, A, K, DefaultFlowKey<S>, never, Namespaces>;
+};
