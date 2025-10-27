@@ -40,9 +40,16 @@ type NodeIns<Value> = Value extends { ins: infer Ins }
       : []
   : [];
 
+type PayloadKeys<S extends PatternSpecLiteral> = Extract<keyof S['payloads'], string>;
+
+type PayloadUnion<S extends PatternSpecLiteral> =
+  keyof S['payloads'] extends never ? Record<string, unknown> : S['payloads'][keyof S['payloads']];
+
 type FlowPayload<S extends PatternSpecLiteral, Key extends string> = Key extends keyof S['payloads']
   ? S['payloads'][Key]
-  : Record<string, unknown>;
+  : PayloadUnion<S>;
+
+type DefaultFlowKey<S extends PatternSpecLiteral> = PayloadKeys<S> extends never ? string : PayloadKeys<S>;
 
 type PathValue<S extends PatternSpecLiteral, FlowKey extends string, Path extends string> =
   Path extends `${infer Namespace}.${infer Rest}`
@@ -123,7 +130,7 @@ export type DataflowNodeOutput<
   S extends PatternSpecLiteral,
   A extends AccessorImplementations<S>,
   Key extends DataflowNodeKey<S>,
-  FlowKey extends string = string,
+  FlowKey extends string = DefaultFlowKey<S>,
   Seen extends string = never
 > = Key extends Seen
   ? unknown

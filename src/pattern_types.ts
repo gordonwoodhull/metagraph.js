@@ -120,35 +120,40 @@ type FirstDependency<S extends PatternSpecLiteral, A extends AccessorImplementat
     ? DependencyOutput<S, A, First>
     : unknown;
 
-type DependencyRecord<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Deps extends readonly string[]> =
-  FirstDependency<S, A, Deps> extends Record<string, infer Value>
+type DependencyTuple<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Deps extends readonly string[]> =
+  DependencyOutputs<S, A, Deps>;
+
+type FirstTupleEntry<Tuple extends readonly unknown[]> = Tuple extends readonly [infer First, ...unknown[]] ? First : unknown;
+
+type DependencyRecordFromTuple<Tuple extends readonly unknown[]> =
+  FirstTupleEntry<Tuple> extends Record<string, infer Value>
     ? Record<string, Value>
     : Record<string, unknown>;
 
-type DependencyRecordValue<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Deps extends readonly string[]> =
-  FirstDependency<S, A, Deps> extends Record<string, infer Value>
+type DependencyRecordValueFromTuple<Tuple extends readonly unknown[]> =
+  FirstTupleEntry<Tuple> extends Record<string, infer Value>
     ? Value
     : unknown;
 
-type DependencyRecordKey<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Deps extends readonly string[]> =
-  keyof DependencyRecord<S, A, Deps> extends infer Keys
+type DependencyRecordKeyFromTuple<Tuple extends readonly unknown[]> =
+  keyof DependencyRecordFromTuple<Tuple> extends infer Keys
     ? Keys extends string
       ? Keys
       : string
     : string;
 
 type ResolveLookupArgMember<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Def extends { member: LookupArgMember; deps: readonly string[] }> =
-  (map: DependencyRecord<S, A, Def['deps']>) => (
+  (map: DependencyRecordFromTuple<DependencyTuple<S, A, Def['deps']>>) => (
       arg: Def['member']['accessor'] extends string
         ? ReturnType<AccessorImplementation<S, A, Extract<Def['member']['accessor'], AccessorKeys<S>>>>
-        : DependencyRecordKey<S, A, Def['deps']>
-    ) => DependencyRecordValue<S, A, Def['deps']>;
+        : DependencyRecordKeyFromTuple<DependencyTuple<S, A, Def['deps']>>
+    ) => DependencyRecordValueFromTuple<DependencyTuple<S, A, Def['deps']>>;
 
 type ResolveLookupFValMember<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Def extends { deps: readonly string[] }> =
-  (map: DependencyRecord<S, A, Def['deps']>) => () => DependencyRecordValue<S, A, Def['deps']>;
+  (map: DependencyRecordFromTuple<DependencyTuple<S, A, Def['deps']>>) => () => DependencyRecordValueFromTuple<DependencyTuple<S, A, Def['deps']>>;
 
 type ResolveLookupKValMember<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Def extends { deps: readonly string[] }> =
-  (map: DependencyRecord<S, A, Def['deps']>) => () => FirstDependency<S, A, Def['deps']> extends Record<string, infer Value extends unknown[]>
+  (map: DependencyRecordFromTuple<DependencyTuple<S, A, Def['deps']>>) => () => FirstDependency<S, A, Def['deps']> extends Record<string, infer Value extends unknown[]>
       ? Value
       : unknown[];
 
