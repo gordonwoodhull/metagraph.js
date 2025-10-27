@@ -1,4 +1,5 @@
 import type { PatternSpecLiteral, AccessorImplementations } from './spec.js';
+import type { Graph } from './types.js';
 
 export type DataflowNodeKey<S extends PatternSpecLiteral> = keyof S['dataflow']['nodes'] & string;
 
@@ -42,6 +43,28 @@ type OutputValue<
   ? DataflowNodeOutput<S, A, Extract<First, DataflowNodeKey<S>>, FlowKey, Seen>
   : unknown;
 
+type MapNode<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Key extends DataflowNodeKey<S>> =
+  NodeSpec<S, Key> extends { refs: infer Ref extends string }
+    ? DataflowNodeOutput<S, A, Extract<Ref, DataflowNodeKey<S>>>
+    : Record<string, unknown>;
+
+type MapOfListsNode<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Key extends DataflowNodeKey<S>> =
+  NodeSpec<S, Key> extends { refs: infer Ref extends string }
+    ? Record<string, DataflowNodeOutput<S, A, Extract<Ref, DataflowNodeKey<S>>>[]>
+    : Record<string, unknown[]>;
+
+type ListNode<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Key extends DataflowNodeKey<S>> =
+  NodeSpec<S, Key> extends { refs: infer Ref extends string }
+    ? DataflowNodeOutput<S, A, Extract<Ref, DataflowNodeKey<S>>>[]
+    : unknown[];
+
+type SingletonNode = unknown;
+
+type SubsetNode<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Key extends DataflowNodeKey<S>> =
+  NodeSpec<S, Key> extends { refs: infer Ref extends string }
+    ? DataflowNodeOutput<S, A, Extract<Ref, DataflowNodeKey<S>>>[]
+    : unknown[];
+
 export type DataflowNodeOutput<
   S extends PatternSpecLiteral,
   A extends AccessorImplementations<S>,
@@ -50,6 +73,18 @@ export type DataflowNodeOutput<
   Seen extends string = never
 > = Key extends Seen
   ? unknown
-  : NodeSpec<S, Key> extends { kind: 'input' } ? InputValue<S, FlowKey, Key, NodeSpec<S, Key>>
-  : NodeSpec<S, Key> extends { kind: 'output' } ? OutputValue<S, A, FlowKey, Seen | Key, NodeIns<NodeSpec<S, Key>>>
-  : unknown;
+  : NodeSpec<S, Key> extends { kind: 'input' }
+    ? InputValue<S, FlowKey, Key, NodeSpec<S, Key>>
+    : NodeSpec<S, Key> extends { kind: 'output' }
+      ? OutputValue<S, A, FlowKey, Seen | Key, NodeIns<NodeSpec<S, Key>>>
+      : NodeSpec<S, Key> extends { kind: 'map' }
+        ? MapNode<S, A, Key>
+        : NodeSpec<S, Key> extends { kind: 'map_of_lists' }
+          ? MapOfListsNode<S, A, Key>
+          : NodeSpec<S, Key> extends { kind: 'list' }
+            ? ListNode<S, A, Key>
+            : NodeSpec<S, Key> extends { kind: 'subset' }
+              ? SubsetNode<S, A, Key>
+              : NodeSpec<S, Key> extends { kind: 'singleton' }
+                ? SingletonNode
+                : unknown;

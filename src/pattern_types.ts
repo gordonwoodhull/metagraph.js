@@ -1,4 +1,5 @@
 import type { PatternSpecLiteral, AccessorImplementations, AccessorKeys, AccessorFunction, InterfaceNodeMap } from './spec.js';
+import type { Member } from './interface.js';
 import type { Graph, Node } from './types.js';
 
 // Helper to extract accessor implementation type, falling back to spec default.
@@ -16,35 +17,13 @@ interface CallSignature<Accessor extends string> {
   readonly accessor: Accessor;
 }
 
-interface FetchSignature {
-  readonly kind: 'fetch';
-}
+type FetchMember = Extract<Member, { kind: 'fetch' }>;
+type LookupArgMember = Extract<Member, { kind: 'lookupArg' }>;
+type LookupFValMember = Extract<Member, { kind: 'lookupFVal' }>;
+type LookupKValMember = Extract<Member, { kind: 'lookupKVal' }>;
+type SubgraphMember = Extract<Member, { kind: 'subgraph' }>;
 
-interface LookupArgSignature<Accessor extends string | undefined> {
-  readonly kind: 'lookupArg';
-  readonly accessor?: Accessor;
-}
-
-interface LookupFValSignature<Accessor extends string> {
-  readonly kind: 'lookupFVal';
-  readonly accessor: Accessor;
-}
-
-interface LookupKValSignature {
-  readonly kind: 'lookupKVal';
-}
-
-interface SubgraphSignature {
-  readonly kind: 'subgraph';
-}
-
-export type MemberSignature =
-  | CallSignature<string>
-  | FetchSignature
-  | LookupArgSignature<string | undefined>
-  | LookupFValSignature<string>
-  | LookupKValSignature
-  | SubgraphSignature;
+export type MemberSignature = CallSignature<string> | Member;
 
 // Extract class/member maps from the spec literal
 type PayloadMap<S extends PatternSpecLiteral> = S['payloads'];
@@ -71,9 +50,9 @@ type ClassMemberMap<S extends PatternSpecLiteral, NodeKey extends keyof Interfac
 type ResolveCallMember<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, K extends string> =
   () => ReturnType<AccessorImplementation<S, A, Extract<K, AccessorKeys<S>>>>;
 
-type ResolveLookupArgMember<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, K extends string | undefined> =
-  K extends string
-    ? (map: Record<string, unknown>) => (arg: ReturnType<AccessorImplementation<S, A, Extract<K, AccessorKeys<S>>>>) => unknown
+type ResolveLookupArgMember<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, M extends LookupArgMember> =
+  M['accessor'] extends string
+    ? (map: Record<string, unknown>) => (arg: ReturnType<AccessorImplementation<S, A, Extract<M['accessor'], AccessorKeys<S>>>>) => unknown
     : (map: Record<string, unknown>) => (arg: unknown) => unknown;
 
 type ResolveLookupFValMember = () => (map: Record<string, unknown>) => () => unknown;
@@ -87,13 +66,13 @@ type ResolveSubgraphMember = () => (...args: unknown[]) => Graph;
 type ResolveMember<S extends PatternSpecLiteral, A extends AccessorImplementations<S>, Signature extends MemberSignature> =
   Signature extends CallSignature<infer K>
     ? ResolveCallMember<S, A, K>
-    : Signature extends LookupArgSignature<infer K>
-      ? ResolveLookupArgMember<S, A, K>
-      : Signature extends LookupFValSignature<infer _K>
+    : Signature extends LookupArgMember
+      ? ResolveLookupArgMember<S, A, Signature>
+      : Signature extends LookupFValMember
         ? ResolveLookupFValMember
-        : Signature extends LookupKValSignature
+        : Signature extends LookupKValMember
           ? ResolveLookupKValMember
-          : Signature extends FetchSignature
+          : Signature extends FetchMember
             ? ResolveFetchMember
             : ResolveSubgraphMember;
 
