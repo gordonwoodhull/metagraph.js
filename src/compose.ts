@@ -1,49 +1,79 @@
+import { graph_detect } from './graph.js';
+import { topological_sort } from './topological_sort.js';
 import type { Graph, Node as PatternNode, Edge as PatternEdge } from './types.js';
 import { as_array } from './core.js';
-import { topological_sort } from './topological_sort.js';
-import { graph_detect } from './graph.js';
 import type { PatternSpecLiteral, AccessorImplementations } from './spec.js';
 import { buildGraphsFromSpec, realisePatternGraph } from './pattern.js';
 import type { PatternGraphType } from './pattern_types.js';
 import type { ExternalNamespaceMap, DataflowOutputs } from './pattern_dataflow.js';
 
-interface CompositionNode<S extends PatternSpecLiteral = PatternSpecLiteral> {
-  spec: S;
-  accessors: AccessorImplementations<S>;
+type CompositionNodeLiteral<
+  S extends PatternSpecLiteral = PatternSpecLiteral,
+  A extends AccessorImplementations<S> = AccessorImplementations<S>
+> = {
+  readonly spec: S;
+  readonly accessors: A;
+};
+
+type CompositionNodes = Record<string, CompositionNodeLiteral>;
+
+type CompositionEdgeLiteral<Nodes extends CompositionNodes = CompositionNodes> = {
+  readonly source: keyof Nodes & string;
+  readonly target: string;
+  readonly input: string;
+};
+
+type CompositionEdges<Nodes extends CompositionNodes = CompositionNodes> =
+  Record<string, CompositionEdgeLiteral<Nodes>>;
+
+export type CompositionLiteral<
+  Nodes extends CompositionNodes = CompositionNodes,
+  Edges extends CompositionEdges<Nodes> = CompositionEdges<Nodes>
+> = {
+  readonly nodes: Nodes;
+  readonly edges: Edges;
+};
+
+type NodeOutputs<C extends CompositionLiteral, Key extends keyof C['nodes'] & string> =
+  DataflowOutputs<C['nodes'][Key]['spec'], C['nodes'][Key]['accessors']>;
+
+type NamespaceMapFromComposition<C extends CompositionLiteral> = {
+  [EdgeKey in keyof C['edges'] & string as C['edges'][EdgeKey]['input'] extends infer NS extends string ? NS : never]:
+    C['edges'][EdgeKey]['source'] extends infer Source extends keyof C['nodes'] & string
+      ? NodeOutputs<C, Source>
+      : never;
+};
+
+type MergeNamespaceMaps<Base extends ExternalNamespaceMap, Extra extends ExternalNamespaceMap> =
+  Extra & Omit<Base, keyof Extra>;
+
+interface CompositionEdgeValue {
+  readonly input: string;
 }
 
-interface CompositionEdge {
-  input: string;
-}
-
-/**
- * Composes multiple pattern specs into a single runtime pattern. Each node in
- * the composition graph supplies a frozen spec literal alongside the runtime
- * accessor implementations required by that spec.
- */
-export const compose = (
-  composition: Graph<CompositionNode, CompositionEdge>,
-  namespaces?: ExternalNamespaceMap
-): PatternGraphType<PatternSpecLiteral, AccessorImplementations<PatternSpecLiteral>, ExternalNamespaceMap> => {
-  const sorted = topological_sort(composition);
+export const compose = <
+  C extends CompositionLiteral,
+  NamespaceOverrides extends ExternalNamespaceMap = {}
+>(
+  composition: C,
+  namespaces?: NamespaceOverrides
+): PatternGraphType<
+  PatternSpecLiteral,
+  AccessorImplementations<PatternSpecLiteral>,
+  MergeNamespaceMaps<NamespaceMapFromComposition<C>, NamespaceOverrides>
+> => {
+  const compositionGraph = graph_detect(composition);
+  const sorted = topological_sort(compositionGraph);
   const composedInterfaces: Record<string, Graph> = {};
   const flowspecs: Record<string, Graph> = {};
-  const namespaceOutputs: Record<string, Record<string, unknown>> = {};
 
-  const inputEdgeFor = (patnode: PatternNode<CompositionNode>, name: string) =>
-    patnode.ins().find((edge: PatternEdge<CompositionEdge>) => edge.value().input === name);
+  const inputEdgeFor = (patnode: PatternNode, name: string) =>
+    patnode.ins().find((edge: PatternEdge<CompositionEdgeValue>) => edge.value().input === name);
 
   sorted.forEach(patnode => {
-    const { spec, accessors } = patnode.value();
-    const incomingNamespaces: ExternalNamespaceMap = {};
-    patnode.ins().forEach(edge => {
-      const srcKey = edge.source().key();
-      incomingNamespaces[edge.value().input] = namespaceOutputs[srcKey] || {};
-    });
-
-    const graphs = buildGraphsFromSpec(spec, accessors, incomingNamespaces);
+    const { spec, accessors } = patnode.value() as CompositionNodeLiteral;
+    const graphs = buildGraphsFromSpec(spec, accessors);
     const flowspecGraph = graphs.flowspec;
-    namespaceOutputs[patnode.key()] = {} as DataflowOutputs<typeof spec, typeof accessors>;
 
     if (flowspecGraph) {
       const remappedFlowNodes = flowspecGraph.nodes().map(fnode => {
@@ -125,20 +155,18 @@ export const compose = (
     edges: finalEdges
   });
 
-  const composedNamespaces: ExternalNamespaceMap = namespaces
-    ? { ...(namespaces as ExternalNamespaceMap) }
-    : {};
-
-  Object.keys(namespaceOutputs).forEach(key => {
-    composedNamespaces[key] = namespaceOutputs[key];
-  });
+  const typedNamespaces =
+    namespaces as MergeNamespaceMaps<
+      NamespaceMapFromComposition<C>,
+      NamespaceOverrides
+    > | undefined;
 
   return realisePatternGraph(
     {
       spec: undefined,
       accessors: {} as AccessorImplementations<PatternSpecLiteral>,
       interfaceGraph,
-      namespaces: composedNamespaces
+      namespaces: typedNamespaces
     },
     flowspecs
   );

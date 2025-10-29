@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   compose,
-  graph_detect,
   graphPatternSpec,
   defaultGraphPatternAccessors,
   subgraphPatternSpec,
@@ -43,7 +42,7 @@ describe('subgraph', () => {
           }
         }
       };
-      pattern = compose(graph_detect(graph_and_subgraph));
+      pattern = compose(graph_and_subgraph);
     });
 
     describe('instantiated from graph data', () => {
