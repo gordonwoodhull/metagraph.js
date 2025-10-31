@@ -10,6 +10,10 @@ const edgeNode = graph.node('Edge');
 type GraphWrapper = ReturnType<typeof graphNode['value']>;
 type NodeWrapper = ReturnType<typeof nodeNode['value']>;
 type EdgeWrapper = ReturnType<typeof edgeNode['value']>;
+type NodeOuts = ReturnType<NodeWrapper['outs']>;
+type NodeGraph = ReturnType<NodeWrapper['graph']>;
+type NodeNodeLookup = ReturnType<NodeWrapper['node']>;
+type GraphNodeLookup = ReturnType<ReturnType<GraphWrapper['node']>>;
 
 describe('graph_pattern type inference', () => {
   it('Graph.nodes returns Node wrappers', () => {
@@ -22,5 +26,17 @@ describe('graph_pattern type inference', () => {
 
   it('Edge.source returns Node wrapper', () => {
     expectTypeOf<ReturnType<ReturnType<EdgeWrapper['source']>>>().toEqualTypeOf<NodeWrapper>();
+  });
+
+  it('Node.outs returns Edge wrapper array', () => {
+    expectTypeOf<NodeOuts>().toEqualTypeOf<EdgeWrapper[]>();
+  });
+
+  it('Node.graph returns Graph wrapper', () => {
+    expectTypeOf<ReturnType<NodeGraph>>().toEqualTypeOf<GraphWrapper>();
+  });
+
+  it('Graph.node lookup returns Node wrapper', () => {
+    expectTypeOf<GraphNodeLookup>().toEqualTypeOf<NodeWrapper>();
   });
 });

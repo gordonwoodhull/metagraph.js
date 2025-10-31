@@ -70,9 +70,9 @@ Sub-steps:
 Sub-steps:
 1. Catalogue dependency tuples from existing specs (map/list, subset, singleton, direct map). *(todo)*
 2. Introduce tuple discriminants (e.g., `DependencyKind<'mapPair', {...}>`) in `pattern_types.ts`. *(todo)*
-3. ✔️ Update lookup resolvers to use the map dependency for precise argument/return types (`lookupArg`, `lookupFVal`, `lookupKVal`, `fetch` now specialise their first dependency; extend to multi-dependency cases next).
-4. Add helper types (`MapValueOf<T>`, `SubsetItemOf<T>`) for clarity. *(partial: map helpers added)*
-5. Verify with temporary type assertions (e.g., `expectTypeOf`) before finalising tests. *(todo)*
+3. ✔️ Update lookup resolvers to use any map dependency for precise argument/return types (`lookupArg`, `lookupFVal`, `lookupKVal`, `fetch` scan dependency tuples).
+4. Add helper types (`MapValueOf<T>`, `SubsetItemOf<T>`) for clarity. *(partial: map helpers added; subset tuple still todo)*
+5. ✔️ Verify with temporary type assertions (e.g., `expectTypeOf`) before finalising tests (graph pattern type checks expanded).
 
 ### Step 3 — Tighten Subgraph Payload Typing
 **Goal:** Give `subgraph` a typed `(nodeKeys, edgeKeys, payload)` signature and the correct child wrapper return.
@@ -87,7 +87,7 @@ Sub-steps:
 **Goal:** Prevent inference regressions.
 
 Sub-steps:
-1. ✔️ Create `tests/types/` leveraging `vitest`’s `expectTypeOf` (graph/subgraph smoke tests added).
+1. ✔️ Create `tests/types/` leveraging `vitest`’s `expectTypeOf` (graph/subgraph/compose coverage added; more scenarios welcome).
 2. ✔️ Cover key scenarios: graph pattern usage, subgraph parent/child interactions, composed namespaces (compose smoke test added).
 3. Add negative tests once `tsd` is included (invalid specs should fail to compile).
 
