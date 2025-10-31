@@ -59,8 +59,8 @@ Keep previous files (`plans/spec-as-const-progress.md`, `plans/spec-as-const-pro
 **Goal:** Produce accurate namespace maps without runtime casts, including alias remapping.
 
 Sub-steps:
-1. **Edge alias analysis**: extend the type-level helpers to account for interface aliases (string node values). Ensure alias targets inherit the same namespace map entries. *(partial: alias nodes now resolve via namespace descriptors for members/class members; still need to ensure namespace map generation propagates alias keys if required.)*
-2. **Namespace overrides merge**: refine `MergeNamespaceMaps` so overrides replace existing entries by key rather than simple intersection. *(now passing a typed default namespace map to `compose`, overrides still todo if runtime merge needed).* 
+1. **Edge alias analysis**: extend the type-level helpers to account for interface aliases (string node values). Ensure alias targets inherit the same namespace map entries. *(alias members now delegate to namespace descriptors; namespace map now pre-populated from composition edges.)*
+2. **Namespace overrides merge**: refine `MergeNamespaceMaps` so overrides replace existing entries by key rather than simple intersection. ✔️ (default namespace descriptors merged with user overrides.)
 3. **Document assumption**: composition now accepts literal specs; provide helper types or guidelines if callers need to reuse `graph_detect`.
 4. **Validation**: add interim `expectTypeOf` checks confirming `compose()` outputs namespace literals like `'graph'`, `'parent'`, `'child'`.
 

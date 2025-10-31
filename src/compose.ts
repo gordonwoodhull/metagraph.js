@@ -162,10 +162,22 @@ export const compose = <
   });
 
   const defaultNamespaces = {} as NamespaceMapFromComposition<C>;
-  const mergedNamespaces = (namespaces ?? defaultNamespaces) as MergeNamespaceMaps<
-    NamespaceMapFromComposition<C>,
-    NamespaceOverrides
-  >;
+  const namespaceDescriptors: ExternalNamespaceMap = {};
+
+  Object.values(composition.edges).forEach(edge => {
+    const node = composition.nodes[edge.source as keyof typeof composition.nodes];
+    namespaceDescriptors[edge.input] = {
+      spec: node.spec,
+      accessors: node.accessors,
+      outputs: {} as DataflowOutputs<typeof node.spec, typeof node.accessors>,
+      payloads: node.spec.payloads
+    };
+  });
+
+  const mergedNamespaces = {
+    ...namespaceDescriptors,
+    ...(namespaces ?? defaultNamespaces)
+  } as MergeNamespaceMaps<NamespaceMapFromComposition<C>, NamespaceOverrides>;
 
   return realisePatternGraph(
     {
