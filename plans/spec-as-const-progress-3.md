@@ -83,12 +83,12 @@ Sub-steps:
 3. Ensure `src/interface.ts`’s runtime implementation matches the inferred signature.
 4. Assert inference with type-only checks once Step 4 infrastructure exists.
 
-### Step 4 — Type-Only Regression Tests
+### Step 4 — Type-Only Regression Tests *(partially done)*
 **Goal:** Prevent inference regressions.
 
 Sub-steps:
-1. Create `tests/types/` leveraging `vitest`’s `expectTypeOf` (or set up `tsd`).
-2. Cover key scenarios: graph pattern usage, subgraph parent/child interactions, composed namespaces.
+1. ✔️ Create `tests/types/` leveraging `vitest`’s `expectTypeOf` (graph/subgraph smoke tests added).
+2. Expand coverage to composed namespaces and upcoming lookup/subgraph payload refinements.
 3. Add negative tests once `tsd` is included (invalid specs should fail to compile).
 
 ### Step 5 — Metrics Reduction & Cleanup
