@@ -88,7 +88,7 @@ Sub-steps:
 
 Sub-steps:
 1. ✔️ Create `tests/types/` leveraging `vitest`’s `expectTypeOf` (graph/subgraph smoke tests added).
-2. Expand coverage to composed namespaces and upcoming lookup/subgraph payload refinements.
+2. ✔️ Cover key scenarios: graph pattern usage, subgraph parent/child interactions, composed namespaces (compose smoke test added).
 3. Add negative tests once `tsd` is included (invalid specs should fail to compile).
 
 ### Step 5 — Metrics Reduction & Cleanup

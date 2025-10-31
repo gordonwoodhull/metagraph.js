@@ -1,5 +1,12 @@
 import type { PatternSpecLiteral, AccessorImplementations, AccessorKeys, AccessorFunction, InterfaceNodeMap } from './spec.js';
-import type { DataflowNodeKey, DataflowNodeOutput, ExternalNamespaceMap, DefaultFlowKey } from './pattern_dataflow.js';
+import type {
+  DataflowNodeKey,
+  DataflowNodeOutput,
+  ExternalNamespaceMap,
+  DefaultFlowKey,
+  NamespaceDescriptor,
+  DataflowOutputs
+} from './pattern_dataflow.js';
 import type { Member } from './interface.js';
 import type { Graph, Node } from './types.js';
 
