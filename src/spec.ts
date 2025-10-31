@@ -76,6 +76,7 @@ export type InterfaceNodeLiteral =
   | InterfaceNodeLiteralObject;
 
 export interface InterfaceNodeLiteralObject {
+  readonly alias?: string;
   readonly members?: Record<string, InterfaceMemberKind>;
   readonly classMembers?: Record<string, InterfaceClassMemberKind>;
 }

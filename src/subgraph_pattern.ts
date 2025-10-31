@@ -15,11 +15,12 @@ type SubgraphAccessorMap = SubgraphPatternRuntimeAccessors;
 
 type SubgraphAccessorDeclarations = AccessorDeclarations<SubgraphAccessorMap>;
 
-type GraphNamespaceDescriptor<A extends GraphPatternRuntimeAccessors> = NamespaceDescriptor<
-  typeof graphPatternSpec,
-  A,
-  GraphDataflowNamespace<A>
->;
+type GraphNamespaceDescriptor<A extends GraphPatternRuntimeAccessors> = {
+  readonly spec: typeof graphPatternSpec;
+  readonly accessors: A;
+  readonly outputs: Record<string, unknown>;
+  readonly payloads: typeof graphPatternSpec['payloads'];
+};
 
 export type SubgraphNamespaces<
   ParentAccessors extends GraphPatternRuntimeAccessors = GraphPatternRuntimeAccessors,
@@ -63,8 +64,12 @@ export const subgraphPatternSpec =
     },
     interface: {
       nodes: {
-        ParentGraph: 'parent.Graph',
-        ChildGraph: 'child.Graph'
+        ParentGraph: {
+          alias: 'parent.Graph'
+        },
+        ChildGraph: {
+          alias: 'child.Graph'
+        }
       },
       edges: {
         subgraph: {

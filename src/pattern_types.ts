@@ -47,17 +47,24 @@ type ClassMemberMap<S extends PatternSpecLiteral, NodeKey extends keyof Interfac
       : {}
     : {};
 
+type ExtractAliasInfo<Literal> =
+  Literal extends `${infer Namespace}.${infer Target}`
+    ? { namespace: Namespace; target: Target }
+    : Literal extends { alias: infer Alias extends string }
+      ? ExtractAliasInfo<Alias>
+      : null;
+
 type InterfaceNodeNamespace<
   S extends PatternSpecLiteral,
   NodeKey extends keyof InterfaceNodeMap<S> & string
-> = InterfaceNodeMap<S>[NodeKey] extends `${infer Namespace}.${string}` ? Namespace : never;
+> = ExtractAliasInfo<InterfaceNodeMap<S>[NodeKey]> extends { namespace: infer Namespace }
+  ? Namespace
+  : never;
 
 type InterfaceNodeAlias<
   S extends PatternSpecLiteral,
   NodeKey extends keyof InterfaceNodeMap<S> & string
-> = InterfaceNodeMap<S>[NodeKey] extends `${infer Namespace}.${infer Target}`
-  ? { namespace: Namespace; target: Target }
-  : null;
+> = ExtractAliasInfo<InterfaceNodeMap<S>[NodeKey]>;
 
 type NormalizeDeps<D> = D extends readonly string[] ? D : D extends string ? readonly [D] : readonly [];
 

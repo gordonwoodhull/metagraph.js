@@ -211,19 +211,27 @@ const convertInterfaceNode = (
     return literal;
   }
 
-  const pieces: Record<string, unknown>[] = [];
+  const pieces: unknown[] = [];
+
+  if (literal.alias) {
+    pieces.push(literal.alias);
+  }
+
+  const memberPieces: Record<string, unknown>[] = [];
 
   if (literal.classMembers) {
     Object.entries(literal.classMembers).forEach(([name, descriptor]) => {
-      pieces.push(convertClassMember(name, descriptor));
+      memberPieces.push(convertClassMember(name, descriptor));
     });
   }
 
   if (literal.members) {
     Object.entries(literal.members).forEach(([name, descriptor]) => {
-      pieces.push(convertMember(name, descriptor, resolveAccessor));
+      memberPieces.push(convertMember(name, descriptor, resolveAccessor));
     });
   }
+
+  pieces.push(...memberPieces);
 
   if (pieces.length === 0) {
     return {};

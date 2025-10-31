@@ -2,9 +2,16 @@ import { graph_detect } from './graph.js';
 import { topological_sort } from './topological_sort.js';
 import type { Graph, Node as GraphNode, Edge as PatternEdge } from './types.js';
 import { as_array } from './core.js';
-import type { PatternSpecLiteral, AccessorImplementations, InterfaceNodeMap } from './spec.js';
+import type {
+  PatternSpecLiteral,
+  AccessorImplementations,
+  InterfaceNodeMap,
+  InterfaceEdgeLiteral,
+  AccessorMapOf,
+  AccessorDeclarations
+} from './spec.js';
 import { buildGraphsFromSpec, realisePatternGraph } from './pattern.js';
-import type { PatternGraphType, InferNodeShape } from './pattern_types.js';
+import type { PatternGraphType } from './pattern_types.js';
 import type { ExternalNamespaceMap, DataflowOutputs, NamespaceDescriptor } from './pattern_dataflow.js';
 
 type CompositionNodeLiteral<
@@ -34,6 +41,80 @@ export type CompositionLiteral<
   readonly edges: Edges;
 };
 
+type UnionToIntersection<U> =
+  (U extends unknown ? (arg: U) => void : never) extends (arg: infer I) => void
+    ? I
+    : never;
+
+type Merge<T> = { [K in keyof T]: T[K] };
+
+type PrefixedInterfaceNodes<
+  Spec extends PatternSpecLiteral,
+  Prefix extends string
+> = {
+  readonly [K in keyof InterfaceNodeMap<Spec> & string as `${Prefix}.${K}`]: InterfaceNodeMap<Spec>[K];
+};
+
+type ComposeInterfaceNodes<C extends CompositionLiteral> = Merge<UnionToIntersection<
+  {
+    [P in keyof C['nodes'] & string]: PrefixedInterfaceNodes<C['nodes'][P]['spec'], P>;
+  }[keyof C['nodes'] & string]
+>>;
+
+type PrefixEdgeLiteral<Literal extends InterfaceEdgeLiteral, Prefix extends string> =
+  Omit<Literal, 'source' | 'target'> & {
+    readonly source: `${Prefix}.${Literal['source']}`;
+    readonly target: `${Prefix}.${Literal['target']}`;
+  };
+
+type PrefixedInterfaceEdges<
+  Spec extends PatternSpecLiteral,
+  Prefix extends string
+> = {
+  readonly [K in keyof Spec['interface']['edges'] & string as `${Prefix}.${K}`]: PrefixEdgeLiteral<Spec['interface']['edges'][K], Prefix>;
+};
+
+type ComposeInterfaceEdges<C extends CompositionLiteral> = Merge<UnionToIntersection<
+  {
+    [P in keyof C['nodes'] & string]: PrefixedInterfaceEdges<C['nodes'][P]['spec'], P>;
+  }[keyof C['nodes'] & string]
+>>;
+
+type ComposePayloads<C extends CompositionLiteral> = Merge<UnionToIntersection<
+  {
+    [P in keyof C['nodes'] & string]: C['nodes'][P]['spec']['payloads'];
+  }[keyof C['nodes'] & string]
+>>;
+
+type ComposeAccessorMap<C extends CompositionLiteral> = Merge<UnionToIntersection<
+  {
+    [P in keyof C['nodes'] & string]: AccessorMapOf<C['nodes'][P]['spec']>;
+  }[keyof C['nodes'] & string]
+>>;
+
+type ComposeAccessorDeclarations<C extends CompositionLiteral> = AccessorDeclarations<ComposeAccessorMap<C>>;
+
+type ComposeDataflowNodes<C extends CompositionLiteral> = Merge<UnionToIntersection<
+  {
+    [P in keyof C['nodes'] & string]: C['nodes'][P]['spec']['dataflow']['nodes'];
+  }[keyof C['nodes'] & string]
+>>;
+
+type ComposeSpec<C extends CompositionLiteral> =
+  PatternSpecLiteral<ComposePayloads<C>, ComposeAccessorMap<C>> & {
+    readonly payloads: ComposePayloads<C>;
+    readonly accessors: ComposeAccessorDeclarations<C>;
+    readonly dataflow: {
+      readonly nodes: ComposeDataflowNodes<C>;
+    };
+    readonly interface: {
+      readonly nodes: ComposeInterfaceNodes<C>;
+      readonly edges: ComposeInterfaceEdges<C>;
+    };
+  };
+
+type ComposeAccessorImplementations<C extends CompositionLiteral> = AccessorImplementations<ComposeSpec<C>>;
+
 type NamespaceDescriptorFromNode<
   C extends CompositionLiteral,
   Key extends keyof C['nodes'] & string
@@ -57,40 +138,6 @@ interface CompositionEdgeValue {
   readonly input: string;
 }
 
-type CompositionNodeKey<C extends CompositionLiteral> = keyof C['nodes'] & string;
-
-type ComposeNodeKey<
-  C extends CompositionLiteral,
-  NodeKey extends CompositionNodeKey<C> = CompositionNodeKey<C>
-> = {
-  [P in NodeKey]: `${P}.${keyof InterfaceNodeMap<C['nodes'][P]['spec']> & string}`
-}[NodeKey];
-
-type ComposeNodeShape<
-  C extends CompositionLiteral,
-  Key extends string,
-  NamespaceOverrides extends ExternalNamespaceMap
-> =
-  Key extends `${infer P}.${infer N}`
-    ? P extends CompositionNodeKey<C>
-      ? N extends keyof InterfaceNodeMap<C['nodes'][P]['spec']> & string
-        ? InferNodeShape<
-            C['nodes'][P]['spec'],
-            C['nodes'][P]['accessors'],
-            N,
-            MergeNamespaceMaps<NamespaceMapFromComposition<C>, NamespaceOverrides>
-          >
-        : unknown
-      : unknown
-    : unknown;
-
-type ComposedPatternGraphExtension<
-  C extends CompositionLiteral,
-  NamespaceOverrides extends ExternalNamespaceMap
-> = {
-  node<Key extends ComposeNodeKey<C>>(key: Key): GraphNode<ComposeNodeShape<C, Key, NamespaceOverrides>>;
-};
-
 export const compose = <
   C extends CompositionLiteral,
   NamespaceOverrides extends ExternalNamespaceMap = {}
@@ -98,14 +145,15 @@ export const compose = <
   composition: C,
   namespaces?: NamespaceOverrides
 ): PatternGraphType<
-  PatternSpecLiteral,
-  AccessorImplementations<PatternSpecLiteral>,
+  ComposeSpec<C>,
+  ComposeAccessorImplementations<C>,
   MergeNamespaceMaps<NamespaceMapFromComposition<C>, NamespaceOverrides>
-> & ComposedPatternGraphExtension<C, NamespaceOverrides> => {
+> => {
   const compositionGraph = graph_detect(composition);
   const sorted = topological_sort(compositionGraph);
   const composedInterfaces: Record<string, Graph> = {};
   const flowspecs: Record<string, Graph> = {};
+  const mergedAccessorImpls: Record<string, (...args: unknown[]) => unknown> = {};
 
   const inputEdgeFor = (patnode: GraphNode, name: string) =>
     patnode.ins().find((edge: PatternEdge<CompositionEdgeValue>) => edge.value().input === name);
@@ -114,6 +162,8 @@ export const compose = <
     const { spec, accessors } = patnode.value() as CompositionNodeLiteral;
     const graphs = buildGraphsFromSpec(spec, accessors);
     const flowspecGraph = graphs.flowspec;
+
+    Object.assign(mergedAccessorImpls, accessors as Record<string, (...args: unknown[]) => unknown>);
 
     if (flowspecGraph) {
       const remappedFlowNodes = flowspecGraph.nodes().map(fnode => {
@@ -213,17 +263,18 @@ export const compose = <
     ...(namespaces ?? defaultNamespaces)
   } as MergeNamespaceMaps<NamespaceMapFromComposition<C>, NamespaceOverrides>;
 
-  return realisePatternGraph(
+  const accessors = mergedAccessorImpls as ComposeAccessorImplementations<C>;
+
+  return realisePatternGraph<ComposeSpec<C>, ComposeAccessorImplementations<C>, MergeNamespaceMaps<NamespaceMapFromComposition<C>, NamespaceOverrides>>(
     {
-      spec: undefined,
-      accessors: {} as AccessorImplementations<PatternSpecLiteral>,
+      accessors,
       interfaceGraph,
       namespaces: mergedNamespaces
     },
     flowspecs
   ) as PatternGraphType<
-    PatternSpecLiteral,
-    AccessorImplementations<PatternSpecLiteral>,
+    ComposeSpec<C>,
+    ComposeAccessorImplementations<C>,
     MergeNamespaceMaps<NamespaceMapFromComposition<C>, NamespaceOverrides>
-  > & ComposedPatternGraphExtension<C, NamespaceOverrides>;
+  >;
 };
