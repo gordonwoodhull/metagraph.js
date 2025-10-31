@@ -64,15 +64,15 @@ Sub-steps:
 3. **Document assumption**: composition now accepts literal specs; provide helper types or guidelines if callers need to reuse `graph_detect`.
 4. **Validation**: add interim `expectTypeOf` checks confirming `compose()` outputs namespace literals like `'graph'`, `'parent'`, `'child'`.
 
-### Step 2 — Specialise Dependency Tuples for Lookup Helpers
+### Step 2 — Specialise Dependency Tuples for Lookup Helpers *(in progress)*
 **Goal:** Remove `unknown` fallbacks by recognising dependency shapes.
 
 Sub-steps:
-1. Catalogue dependency tuples from existing specs (map/list, subset, singleton, direct map).
-2. Introduce tuple discriminants (e.g., `DependencyKind<'mapPair', {...}>`) in `pattern_types.ts`.
-3. Update lookup resolvers to use these discriminants for precise argument/return types (`lookupArg`, `lookupFVal`, `lookupKVal`, `fetch`).
-4. Add helper types (`MapValueOf<T>`, `SubsetItemOf<T>`) for clarity.
-5. Verify with temporary type assertions (e.g., `expectTypeOf`) before finalising tests.
+1. Catalogue dependency tuples from existing specs (map/list, subset, singleton, direct map). *(todo)*
+2. Introduce tuple discriminants (e.g., `DependencyKind<'mapPair', {...}>`) in `pattern_types.ts`. *(todo)*
+3. ✔️ Update lookup resolvers to use the map dependency for precise argument/return types (`lookupArg`, `lookupFVal`, `lookupKVal`, `fetch` now specialise their first dependency; extend to multi-dependency cases next).
+4. Add helper types (`MapValueOf<T>`, `SubsetItemOf<T>`) for clarity. *(partial: map helpers added)*
+5. Verify with temporary type assertions (e.g., `expectTypeOf`) before finalising tests. *(todo)*
 
 ### Step 3 — Tighten Subgraph Payload Typing
 **Goal:** Give `subgraph` a typed `(nodeKeys, edgeKeys, payload)` signature and the correct child wrapper return.

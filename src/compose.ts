@@ -161,18 +161,12 @@ export const compose = <
     edges: finalEdges
   });
 
-  const typedNamespaces =
-    namespaces as MergeNamespaceMaps<
-      NamespaceMapFromComposition<C>,
-      NamespaceOverrides
-    > | undefined;
-
   return realisePatternGraph(
     {
       spec: undefined,
       accessors: {} as AccessorImplementations<PatternSpecLiteral>,
       interfaceGraph,
-      namespaces: typedNamespaces
+      namespaces: undefined
     },
     flowspecs
   );
