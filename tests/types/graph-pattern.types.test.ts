@@ -14,6 +14,8 @@ type NodeOuts = ReturnType<NodeWrapper['outs']>;
 type NodeGraph = ReturnType<NodeWrapper['graph']>;
 type NodeNodeLookup = ReturnType<NodeWrapper['node']>;
 type GraphNodeLookup = ReturnType<ReturnType<GraphWrapper['node']>>;
+type NodeOutsMap = Parameters<NodeWrapper['outs']>[0];
+type GraphNodeMap = Parameters<GraphWrapper['node']>[0];
 
 describe('graph_pattern type inference', () => {
   it('Graph.nodes returns Node wrappers', () => {
@@ -38,5 +40,13 @@ describe('graph_pattern type inference', () => {
 
   it('Graph.node lookup returns Node wrapper', () => {
     expectTypeOf<GraphNodeLookup>().toEqualTypeOf<NodeWrapper>();
+  });
+
+  it('Graph.node lookup map parameter is keyed by string with Node wrapper values', () => {
+    expectTypeOf<GraphNodeMap>().toEqualTypeOf<Record<string, NodeWrapper>>();
+  });
+
+  it('Node.outs map parameter is keyed by string with Edge wrapper arrays', () => {
+    expectTypeOf<NodeOutsMap>().toEqualTypeOf<Record<string, EdgeWrapper[]>>();
   });
 });

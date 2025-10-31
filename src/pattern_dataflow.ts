@@ -20,11 +20,11 @@ type NodeIns<Value> = Value extends { ins: infer Ins }
 type PayloadKeys<S extends PatternSpecLiteral> = Extract<keyof S['payloads'], string>;
 
 type PayloadUnion<S extends PatternSpecLiteral> =
-  keyof S['payloads'] extends never ? Record<string, unknown> : S['payloads'][keyof S['payloads']];
+  keyof S['payloads'] extends never ? never : S['payloads'][keyof S['payloads']];
 
 type FlowPayload<S extends PatternSpecLiteral, Key extends string> = Key extends keyof S['payloads']
   ? S['payloads'][Key]
-  : PayloadUnion<S>;
+  : never;
 
 export type DefaultFlowKey<S extends PatternSpecLiteral> = PayloadKeys<S> extends never ? string : PayloadKeys<S>;
 

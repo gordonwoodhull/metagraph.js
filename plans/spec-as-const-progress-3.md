@@ -96,7 +96,7 @@ Sub-steps:
 
 Sub-steps:
 1. Run `scripts/count-any-unknown.ts` after every major change; include counts in commits.
-2. Replace or explain residual `unknown`s in `pattern_types.ts` and `interface.ts`.
+2. Replace or explain residual `unknown`s in `pattern_types.ts` and `interface.ts`. *(FlowPayload fallback now `never` to avoid propagating unknown payloads.)*
 3. Audit legacy runtime types in `src/types.ts`; tighten generics where feasible.
 4. Update docs/README to explain namespace typing, type-level composition, and spec authoring guidelines.
 
