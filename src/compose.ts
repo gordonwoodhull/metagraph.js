@@ -1,10 +1,10 @@
 import { graph_detect } from './graph.js';
 import { topological_sort } from './topological_sort.js';
-import type { Graph, Node as PatternNode, Edge as PatternEdge } from './types.js';
+import type { Graph, Node as GraphNode, Edge as PatternEdge } from './types.js';
 import { as_array } from './core.js';
-import type { PatternSpecLiteral, AccessorImplementations } from './spec.js';
+import type { PatternSpecLiteral, AccessorImplementations, InterfaceNodeMap } from './spec.js';
 import { buildGraphsFromSpec, realisePatternGraph } from './pattern.js';
-import type { PatternGraphType } from './pattern_types.js';
+import type { PatternGraphType, InferNodeShape } from './pattern_types.js';
 import type { ExternalNamespaceMap, DataflowOutputs, NamespaceDescriptor } from './pattern_dataflow.js';
 
 type CompositionNodeLiteral<
@@ -57,6 +57,40 @@ interface CompositionEdgeValue {
   readonly input: string;
 }
 
+type CompositionNodeKey<C extends CompositionLiteral> = keyof C['nodes'] & string;
+
+type ComposeNodeKey<
+  C extends CompositionLiteral,
+  NodeKey extends CompositionNodeKey<C> = CompositionNodeKey<C>
+> = {
+  [P in NodeKey]: `${P}.${keyof InterfaceNodeMap<C['nodes'][P]['spec']> & string}`
+}[NodeKey];
+
+type ComposeNodeShape<
+  C extends CompositionLiteral,
+  Key extends string,
+  NamespaceOverrides extends ExternalNamespaceMap
+> =
+  Key extends `${infer P}.${infer N}`
+    ? P extends CompositionNodeKey<C>
+      ? N extends keyof InterfaceNodeMap<C['nodes'][P]['spec']> & string
+        ? InferNodeShape<
+            C['nodes'][P]['spec'],
+            C['nodes'][P]['accessors'],
+            N,
+            MergeNamespaceMaps<NamespaceMapFromComposition<C>, NamespaceOverrides>
+          >
+        : unknown
+      : unknown
+    : unknown;
+
+type ComposedPatternGraphExtension<
+  C extends CompositionLiteral,
+  NamespaceOverrides extends ExternalNamespaceMap
+> = {
+  node<Key extends ComposeNodeKey<C>>(key: Key): GraphNode<ComposeNodeShape<C, Key, NamespaceOverrides>>;
+};
+
 export const compose = <
   C extends CompositionLiteral,
   NamespaceOverrides extends ExternalNamespaceMap = {}
@@ -67,13 +101,13 @@ export const compose = <
   PatternSpecLiteral,
   AccessorImplementations<PatternSpecLiteral>,
   MergeNamespaceMaps<NamespaceMapFromComposition<C>, NamespaceOverrides>
-> => {
+> & ComposedPatternGraphExtension<C, NamespaceOverrides> => {
   const compositionGraph = graph_detect(composition);
   const sorted = topological_sort(compositionGraph);
   const composedInterfaces: Record<string, Graph> = {};
   const flowspecs: Record<string, Graph> = {};
 
-  const inputEdgeFor = (patnode: PatternNode, name: string) =>
+  const inputEdgeFor = (patnode: GraphNode, name: string) =>
     patnode.ins().find((edge: PatternEdge<CompositionEdgeValue>) => edge.value().input === name);
 
   sorted.forEach(patnode => {
@@ -187,5 +221,9 @@ export const compose = <
       namespaces: mergedNamespaces
     },
     flowspecs
-  );
+  ) as PatternGraphType<
+    PatternSpecLiteral,
+    AccessorImplementations<PatternSpecLiteral>,
+    MergeNamespaceMaps<NamespaceMapFromComposition<C>, NamespaceOverrides>
+  > & ComposedPatternGraphExtension<C, NamespaceOverrides>;
 };

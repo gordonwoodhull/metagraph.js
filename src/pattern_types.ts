@@ -279,11 +279,11 @@ type RawInferClassMembers<
     : never;
 };
 
-export type InferClassMembers<
+type AliasInferClassMembers<
   S extends PatternSpecLiteral,
   A extends AccessorImplementations<S>,
   NodeKey extends keyof InterfaceNodeMap<S> & string,
-  Namespaces extends ExternalNamespaceMap = {}
+  Namespaces extends ExternalNamespaceMap
 > = InterfaceNodeAlias<S, NodeKey> extends { namespace: infer NS extends keyof Namespaces; target: infer Target extends string }
   ? Namespaces[NS]['spec'] extends infer AliasSpec extends PatternSpecLiteral
     ? Namespaces[NS]['accessors'] extends AccessorImplementations<AliasSpec>
@@ -293,9 +293,18 @@ export type InferClassMembers<
           Extract<Target, keyof InterfaceNodeMap<AliasSpec> & string>,
           Namespaces
         >
-      : never
-    : never
-  : RawInferClassMembers<S, A, NodeKey, Namespaces>;
+      : {}
+    : {}
+  : {};
+
+export type InferClassMembers<
+  S extends PatternSpecLiteral,
+  A extends AccessorImplementations<S>,
+  NodeKey extends keyof InterfaceNodeMap<S> & string,
+  Namespaces extends ExternalNamespaceMap = {}
+> =
+  AliasInferClassMembers<S, A, NodeKey, Namespaces> &
+  RawInferClassMembers<S, A, NodeKey, Namespaces>;
 
 type LocalInferMembers<
   S extends PatternSpecLiteral,
@@ -308,11 +317,11 @@ type LocalInferMembers<
     : never;
 };
 
-export type InferMembers<
+type AliasInferMembers<
   S extends PatternSpecLiteral,
   A extends AccessorImplementations<S>,
   NodeKey extends keyof InterfaceNodeMap<S> & string,
-  Namespaces extends ExternalNamespaceMap = {}
+  Namespaces extends ExternalNamespaceMap
 > = InterfaceNodeAlias<S, NodeKey> extends { namespace: infer NS extends keyof Namespaces; target: infer Target extends string }
   ? Namespaces[NS]['spec'] extends infer AliasSpec extends PatternSpecLiteral
     ? Namespaces[NS]['accessors'] extends AccessorImplementations<AliasSpec>
@@ -322,9 +331,18 @@ export type InferMembers<
           Extract<Target, keyof InterfaceNodeMap<AliasSpec> & string>,
           Namespaces
         >
-      : never
-    : never
-  : LocalInferMembers<S, A, NodeKey, Namespaces>;
+      : {}
+    : {}
+  : {};
+
+export type InferMembers<
+  S extends PatternSpecLiteral,
+  A extends AccessorImplementations<S>,
+  NodeKey extends keyof InterfaceNodeMap<S> & string,
+  Namespaces extends ExternalNamespaceMap = {}
+> =
+  AliasInferMembers<S, A, NodeKey, Namespaces> &
+  LocalInferMembers<S, A, NodeKey, Namespaces>;
 
 export type InferNodeShape<
   S extends PatternSpecLiteral,

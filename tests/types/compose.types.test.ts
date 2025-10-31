@@ -43,14 +43,23 @@ const pattern = compose(composition);
 
 const parentNode = pattern.node('graph.Graph');
 const childNode = pattern.node('subgraph.Graph');
+const sgParentNode = pattern.node('sg.ParentGraph');
 
 type ParentWrapper = ReturnType<typeof parentNode['value']>;
 type ChildWrapper = ReturnType<typeof childNode['value']>;
+type SgParentWrapper = ReturnType<typeof sgParentNode['value']>;
 
 describe('compose type inference', () => {
   it('ParentGraph.subgraph returns ChildGraph wrapper', () => {
     expectTypeOf<
       ReturnType<ReturnType<ParentWrapper['subgraph']>>
     >().toEqualTypeOf<ChildWrapper>();
+  });
+
+  it('sg.ParentGraph reuses subgraph wiring', () => {
+    expectTypeOf<
+      ReturnType<ReturnType<SgParentWrapper['subgraph']>>
+    >().toEqualTypeOf<ChildWrapper>();
+    expectTypeOf<Parameters<SgParentWrapper['subgraph']>[2]>().toEqualTypeOf<Parameters<ParentWrapper['subgraph']>[2]>();
   });
 });
