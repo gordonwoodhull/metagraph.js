@@ -120,7 +120,7 @@ type MapNode<
   Node extends NodeSpec<S, Key> = NodeSpec<S, Key>
 > = NodeRefs<Node> extends infer Ref extends string
   ? Record<string, InterfaceNodeShapeFromRef<S, A, Ref, Namespaces>>
-  : Record<string, unknown>;
+  : never;
 
 type MapOfListsNode<
   S extends PatternSpecLiteral,
@@ -130,7 +130,7 @@ type MapOfListsNode<
   Node extends NodeSpec<S, Key> = NodeSpec<S, Key>
 > = NodeRefs<Node> extends infer Ref extends string
   ? Record<string, InterfaceNodeShapeFromRef<S, A, Ref, Namespaces>[]>
-  : Record<string, unknown[]>;
+  : Record<string, never[]>;
 
 type ListNode<
   S extends PatternSpecLiteral,
@@ -140,7 +140,7 @@ type ListNode<
   Node extends NodeSpec<S, Key> = NodeSpec<S, Key>
 > = NodeRefs<Node> extends infer Ref extends string
   ? InterfaceNodeShapeFromRef<S, A, Ref, Namespaces>[]
-  : unknown[];
+  : never[];
 
 type SingletonNode<
   S extends PatternSpecLiteral,
@@ -150,7 +150,7 @@ type SingletonNode<
   Node extends NodeSpec<S, Key> = NodeSpec<S, Key>
 > = NodeRefs<Node> extends infer Ref extends string
   ? InterfaceNodeShapeFromRef<S, A, Ref, Namespaces>
-  : unknown;
+  : never;
 
 type SubsetNode<
   S extends PatternSpecLiteral,
@@ -160,7 +160,7 @@ type SubsetNode<
   Node extends NodeSpec<S, Key> = NodeSpec<S, Key>
 > = NodeRefs<Node> extends infer Ref extends string
   ? InterfaceNodeShapeFromRef<S, A, Ref, Namespaces>[]
-  : unknown[];
+  : never[];
 
 export type DataflowNodeOutput<
   S extends PatternSpecLiteral,

@@ -168,6 +168,14 @@ type DependencyTuple<
 type MapKeys<T> = T extends Record<infer K extends string, unknown> ? K : string;
 type MapValues<T> = T extends Record<string, infer V> ? V : unknown;
 type MapArrayValues<T> = T extends Record<string, infer V extends unknown[]> ? V : unknown[];
+type ExtractArrayFromTuple<Tuple extends readonly unknown[]> =
+  Tuple extends readonly [infer First, ...infer Rest]
+    ? First extends readonly unknown[]
+      ? First
+      : Rest extends readonly unknown[]
+        ? ExtractArrayFromTuple<Rest>
+        : never[]
+    : never[];
 
 type ExtractMapFromTuple<Tuple extends readonly unknown[]> =
   Tuple extends readonly [infer First, ...infer Rest]
