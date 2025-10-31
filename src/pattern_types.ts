@@ -169,19 +169,35 @@ type MapKeys<T> = T extends Record<infer K extends string, unknown> ? K : string
 type MapValues<T> = T extends Record<string, infer V> ? V : unknown;
 type MapArrayValues<T> = T extends Record<string, infer V extends unknown[]> ? V : unknown[];
 
+type ExtractMapFromTuple<Tuple extends readonly unknown[]> =
+  Tuple extends readonly [infer First, ...infer Rest]
+    ? First extends Record<string, unknown>
+      ? First
+      : Rest extends readonly unknown[]
+        ? ExtractMapFromTuple<Rest>
+        : Record<string, never>
+    : Record<string, never>;
+
+type ExtractMapOfArraysFromTuple<Tuple extends readonly unknown[]> =
+  Tuple extends readonly [infer First, ...infer Rest]
+    ? First extends Record<string, infer Value extends unknown[]>
+      ? Record<string, Value>
+      : Rest extends readonly unknown[]
+        ? ExtractMapOfArraysFromTuple<Rest>
+        : Record<string, never[]>
+    : Record<string, never[]>;
+
 type ResolveLookupArgMember<
   S extends PatternSpecLiteral,
   A extends AccessorImplementations<S>,
   Namespaces extends ExternalNamespaceMap,
   Def extends { member: LookupArgMember; deps: readonly string[]; target?: string }
 > =
-  (map: FirstDependency<S, A, Def['deps'], Namespaces> extends Record<string, infer Value>
-    ? Record<string, Value>
-    : Record<string, unknown>) => (
+  (map: ExtractMapFromTuple<DependencyTuple<S, A, Def['deps'], Namespaces>>) => (
       arg: Def['member']['accessor'] extends string
         ? ReturnType<AccessorImplementation<S, A, Extract<Def['member']['accessor'], AccessorKeys<S>>>>
-        : MapKeys<FirstDependency<S, A, Def['deps'], Namespaces>>
-    ) => MapValues<FirstDependency<S, A, Def['deps'], Namespaces>>;
+        : MapKeys<ExtractMapFromTuple<DependencyTuple<S, A, Def['deps'], Namespaces>>>
+    ) => MapValues<ExtractMapFromTuple<DependencyTuple<S, A, Def['deps'], Namespaces>>>;
 
 type ResolveLookupFValMember<
   S extends PatternSpecLiteral,
@@ -189,9 +205,7 @@ type ResolveLookupFValMember<
   Namespaces extends ExternalNamespaceMap,
   Def extends { deps: readonly string[]; target?: string }
 > =
-  (map: FirstDependency<S, A, Def['deps'], Namespaces> extends Record<string, infer Value>
-    ? Record<string, Value>
-    : Record<string, unknown>) => () => MapValues<FirstDependency<S, A, Def['deps'], Namespaces>>;
+  (map: ExtractMapFromTuple<DependencyTuple<S, A, Def['deps'], Namespaces>>) => () => MapValues<ExtractMapFromTuple<DependencyTuple<S, A, Def['deps'], Namespaces>>>;
 
 type ResolveLookupKValMember<
   S extends PatternSpecLiteral,
@@ -199,9 +213,7 @@ type ResolveLookupKValMember<
   Namespaces extends ExternalNamespaceMap,
   Def extends { deps: readonly string[]; target?: string }
 > =
-  (map: FirstDependency<S, A, Def['deps'], Namespaces> extends Record<string, infer Value>
-    ? Record<string, Value>
-    : Record<string, unknown>) => () => MapArrayValues<FirstDependency<S, A, Def['deps'], Namespaces>>;
+  (map: ExtractMapOfArraysFromTuple<DependencyTuple<S, A, Def['deps'], Namespaces>>) => () => MapArrayValues<ExtractMapOfArraysFromTuple<DependencyTuple<S, A, Def['deps'], Namespaces>>>;
 
 type ResolveFetchMember<
   S extends PatternSpecLiteral,
