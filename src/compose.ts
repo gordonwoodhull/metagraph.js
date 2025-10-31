@@ -5,7 +5,7 @@ import { as_array } from './core.js';
 import type { PatternSpecLiteral, AccessorImplementations } from './spec.js';
 import { buildGraphsFromSpec, realisePatternGraph } from './pattern.js';
 import type { PatternGraphType } from './pattern_types.js';
-import type { ExternalNamespaceMap, DataflowOutputs } from './pattern_dataflow.js';
+import type { ExternalNamespaceMap, DataflowOutputs, NamespaceDescriptor } from './pattern_dataflow.js';
 
 type CompositionNodeLiteral<
   S extends PatternSpecLiteral = PatternSpecLiteral,
@@ -34,13 +34,19 @@ export type CompositionLiteral<
   readonly edges: Edges;
 };
 
-type NodeOutputs<C extends CompositionLiteral, Key extends keyof C['nodes'] & string> =
-  DataflowOutputs<C['nodes'][Key]['spec'], C['nodes'][Key]['accessors']>;
+type NamespaceDescriptorFromNode<
+  C extends CompositionLiteral,
+  Key extends keyof C['nodes'] & string
+> = NamespaceDescriptor<
+  C['nodes'][Key]['spec'],
+  C['nodes'][Key]['accessors'],
+  DataflowOutputs<C['nodes'][Key]['spec'], C['nodes'][Key]['accessors']>
+>;
 
 type NamespaceMapFromComposition<C extends CompositionLiteral> = {
   [EdgeKey in keyof C['edges'] & string as C['edges'][EdgeKey]['input'] extends infer NS extends string ? NS : never]:
     C['edges'][EdgeKey]['source'] extends infer Source extends keyof C['nodes'] & string
-      ? NodeOutputs<C, Source>
+      ? NamespaceDescriptorFromNode<C, Source>
       : never;
 };
 

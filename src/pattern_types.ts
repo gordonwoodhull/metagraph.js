@@ -40,6 +40,11 @@ type ClassMemberMap<S extends PatternSpecLiteral, NodeKey extends keyof Interfac
       : {}
     : {};
 
+type InterfaceNodeNamespace<
+  S extends PatternSpecLiteral,
+  NodeKey extends keyof InterfaceNodeMap<S> & string
+> = InterfaceNodeMap<S>[NodeKey] extends `${infer Namespace}.${string}` ? Namespace : never;
+
 type NormalizeDeps<D> = D extends readonly string[] ? D : D extends string ? readonly [D] : readonly [];
 
 type ToMemberSignature<M> =
@@ -108,9 +113,13 @@ type DependencyOutput<
   Namespaces extends ExternalNamespaceMap
 > =
   Dep extends `${infer Namespace}.${infer Rest}`
-    ? Rest extends DataflowNodeKey<S>
-      ? DataflowNodeOutput<S, A, Rest, Namespace, never, Namespaces>
-      : unknown
+    ? Namespace extends keyof Namespaces
+      ? Rest extends keyof Namespaces[Namespace]['outputs']
+        ? Namespaces[Namespace]['outputs'][Rest]
+        : unknown
+      : Rest extends DataflowNodeKey<S>
+        ? DataflowNodeOutput<S, A, Rest, Namespace, never, Namespaces>
+        : unknown
     : Dep extends DataflowNodeKey<S>
       ? DataflowNodeOutput<S, A, Dep, DefaultFlowKey<S>, never, Namespaces>
       : unknown;
@@ -204,8 +213,14 @@ type ResolveSubgraphMember<
   A extends AccessorImplementations<S>,
   Namespaces extends ExternalNamespaceMap,
   Def extends { target?: string }
-> = Def['target'] extends string
-  ? () => (nodeKeys: string[], edgeKeys: string[], payload: unknown) => InferNodeShape<S, A, Extract<Def['target'], string>, Namespaces>
+> = Def['target'] extends infer Target extends string
+  ? InterfaceNodeNamespace<S, Extract<Target, keyof InterfaceNodeMap<S> & string>> extends infer Namespace extends keyof Namespaces
+    ? () => (
+        nodeKeys: string[],
+        edgeKeys: string[],
+        payload: Namespaces[Namespace]['payloads'][keyof Namespaces[Namespace]['payloads']]
+      ) => InferNodeShape<S, A, Extract<Target, keyof InterfaceNodeMap<S> & string>, Namespaces>
+    : () => (...args: unknown[]) => Graph
   : () => (...args: unknown[]) => Graph;
 
 type ResolveMember<

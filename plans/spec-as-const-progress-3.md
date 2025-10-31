@@ -10,8 +10,6 @@ We are turning each `as const` pattern spec into the single source of truth so r
 
 Recent change: `compose()` now expects a literal `CompositionLiteral` (nodes + edges) so we can derive namespace maps at the type level. The runtime still builds the combined pattern graph, but type inference finally has access to each component’s spec/accessors and the literal namespace keys.
 
-Current metrics (`npx tsx scripts/count-any-unknown.ts`): `any: 24`, `unknown: 166`.
-
 ---
 
 ## 2. Work So Far (Highlights)

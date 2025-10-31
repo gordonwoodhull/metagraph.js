@@ -1,7 +1,9 @@
 import { pattern, PatternOptions } from './pattern.js';
+import { graphPatternSpec } from './graph_pattern.js';
 import type { PatternSpecLiteral, AccessorDeclarations } from './spec.js';
 import type { PatternGraphType } from './pattern_types.js';
 import type { GraphPatternRuntimeAccessors, GraphDataflowNamespace } from './graph_pattern.js';
+import type { NamespaceDescriptor } from './pattern_dataflow.js';
 
 export interface SubgraphPatternRuntimeAccessors {
   wrappedKey: (wrapper: { key: () => string }) => string;
@@ -13,12 +15,18 @@ type SubgraphAccessorMap = SubgraphPatternRuntimeAccessors;
 
 type SubgraphAccessorDeclarations = AccessorDeclarations<SubgraphAccessorMap>;
 
+type GraphNamespaceDescriptor<A extends GraphPatternRuntimeAccessors> = NamespaceDescriptor<
+  typeof graphPatternSpec,
+  A,
+  GraphDataflowNamespace<A>
+>;
+
 export type SubgraphNamespaces<
   ParentAccessors extends GraphPatternRuntimeAccessors = GraphPatternRuntimeAccessors,
   ChildAccessors extends GraphPatternRuntimeAccessors = GraphPatternRuntimeAccessors
 > = {
-  readonly parent: GraphDataflowNamespace<ParentAccessors>;
-  readonly child: GraphDataflowNamespace<ChildAccessors>;
+  readonly parent: GraphNamespaceDescriptor<ParentAccessors>;
+  readonly child: GraphNamespaceDescriptor<ChildAccessors>;
 };
 
 export const subgraphPatternSpec =
@@ -123,8 +131,7 @@ export function subgraph_pattern(accessors?: SubgraphPatternRuntimeAccessors) {
       typeof accessors,
       SubgraphNamespaces
     > = {
-      accessors,
-      namespaces: {} as SubgraphNamespaces
+      accessors
     };
     return pattern<
       typeof subgraphPatternSpec,
@@ -138,8 +145,7 @@ export function subgraph_pattern(accessors?: SubgraphPatternRuntimeAccessors) {
     typeof defaults,
     SubgraphNamespaces
   > = {
-    accessors: defaults,
-    namespaces: {} as SubgraphNamespaces
+    accessors: defaults
   };
   return pattern<
     typeof subgraphPatternSpec,

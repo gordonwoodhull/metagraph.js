@@ -52,15 +52,26 @@ type InterfaceNodeShapeFromRef<
   ? InferNodeShape<S, A, Key, Namespaces>
   : unknown;
 
-export type ExternalNamespaceMap = Record<string, Record<string, unknown>>;
+export type NamespaceDescriptor<
+  S extends PatternSpecLiteral = PatternSpecLiteral,
+  A extends AccessorImplementations<S> = AccessorImplementations<S>,
+  Outputs extends Record<string, unknown> = Record<string, unknown>
+> = {
+  readonly spec: S;
+  readonly accessors: A;
+  readonly outputs: Outputs;
+  readonly payloads: S['payloads'];
+};
+
+export type ExternalNamespaceMap = Record<string, NamespaceDescriptor>;
 
 type ExternalPathValue<
   Namespaces extends ExternalNamespaceMap,
   Namespace extends string,
   Field extends string
 > = Namespace extends keyof Namespaces
-  ? Field extends keyof Namespaces[Namespace]
-    ? Namespaces[Namespace][Field]
+  ? Field extends keyof Namespaces[Namespace]['outputs']
+    ? Namespaces[Namespace]['outputs'][Field]
     : unknown
   : unknown;
 
