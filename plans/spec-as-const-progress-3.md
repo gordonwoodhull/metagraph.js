@@ -59,7 +59,7 @@ Keep previous files (`plans/spec-as-const-progress.md`, `plans/spec-as-const-pro
 **Goal:** Produce accurate namespace maps without runtime casts, including alias remapping.
 
 Sub-steps:
-1. **Edge alias analysis**: extend the type-level helpers to account for interface aliases (string node values). Ensure alias targets inherit the same namespace map entries.
+1. **Edge alias analysis**: extend the type-level helpers to account for interface aliases (string node values). Ensure alias targets inherit the same namespace map entries. *(partial: alias nodes now resolve via namespace descriptors for members/class members; still need to ensure namespace map generation propagates alias keys if required.)*
 2. **Namespace overrides merge**: refine `MergeNamespaceMaps` so overrides replace existing entries by key rather than simple intersection.
 3. **Document assumption**: composition now accepts literal specs; provide helper types or guidelines if callers need to reuse `graph_detect`.
 4. **Validation**: add interim `expectTypeOf` checks confirming `compose()` outputs namespace literals like `'graph'`, `'parent'`, `'child'`.
@@ -78,10 +78,10 @@ Sub-steps:
 **Goal:** Give `subgraph` a typed `(nodeKeys, edgeKeys, payload)` signature and the correct child wrapper return.
 
 Sub-steps:
-1. Extend `SubgraphNamespaces` so the child namespace records payload bucket shapes (not just dataflow outputs).
-2. Update `ResolveSubgraphMember` to pull parameter and return types from the namespace map.
-3. Ensure `src/interface.ts`’s runtime implementation matches the inferred signature.
-4. Assert inference with type-only checks once Step 4 infrastructure exists.
+1. ✔️ Extend `SubgraphNamespaces` so the child namespace records payload bucket shapes (not just dataflow outputs).
+2. ✔️ Update `ResolveSubgraphMember` to pull parameter and return types from the namespace map (payload derived from target `create`).
+3. Ensure `src/interface.ts`’s runtime implementation matches the inferred signature. *(todo: audit runtime helper once payload typing is exercised more broadly.)*
+4. ✔️ Assert inference with type-only checks (`tests/types/subgraph-pattern.types.test.ts`).
 
 ### Step 4 — Type-Only Regression Tests *(partially done)*
 **Goal:** Prevent inference regressions.

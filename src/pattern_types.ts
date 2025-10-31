@@ -52,6 +52,13 @@ type InterfaceNodeNamespace<
   NodeKey extends keyof InterfaceNodeMap<S> & string
 > = InterfaceNodeMap<S>[NodeKey] extends `${infer Namespace}.${string}` ? Namespace : never;
 
+type InterfaceNodeAlias<
+  S extends PatternSpecLiteral,
+  NodeKey extends keyof InterfaceNodeMap<S> & string
+> = InterfaceNodeMap<S>[NodeKey] extends `${infer Namespace}.${infer Target}`
+  ? { namespace: Namespace; target: Target }
+  : null;
+
 type NormalizeDeps<D> = D extends readonly string[] ? D : D extends string ? readonly [D] : readonly [];
 
 type ToMemberSignature<M> =
@@ -211,11 +218,15 @@ type ResolveSubgraphMember<
   Def extends { target?: string }
 > = Def['target'] extends infer Target extends string
   ? InterfaceNodeNamespace<S, Extract<Target, keyof InterfaceNodeMap<S> & string>> extends infer Namespace extends keyof Namespaces
-    ? () => (
-        nodeKeys: string[],
-        edgeKeys: string[],
-        payload: Namespaces[Namespace]['payloads'][keyof Namespaces[Namespace]['payloads']]
-      ) => InferNodeShape<S, A, Extract<Target, keyof InterfaceNodeMap<S> & string>, Namespaces>
+    ? InferClassMembers<S, A, Extract<Target, keyof InterfaceNodeMap<S> & string>, Namespaces> extends { create: infer Create }
+      ? Create extends (payload: infer Payload) => unknown
+        ? () => (
+            nodeKeys: string[],
+            edgeKeys: string[],
+            payload: Payload
+          ) => InferNodeShape<S, A, Extract<Target, keyof InterfaceNodeMap<S> & string>, Namespaces>
+        : () => (...args: unknown[]) => Graph
+      : () => (...args: unknown[]) => Graph
     : () => (...args: unknown[]) => Graph
   : () => (...args: unknown[]) => Graph;
 
@@ -237,14 +248,43 @@ type ResolveMember<
             ? ResolveFetchMember<S, A, Namespaces, Def>
             : ResolveSubgraphMember<S, A, Namespaces, Def>;
 
+type RawInferClassMembers<
+  S extends PatternSpecLiteral,
+  A extends AccessorImplementations<S>,
+  NodeKey extends keyof InterfaceNodeMap<S> & string,
+  Namespaces extends ExternalNamespaceMap
+> = {
+  readonly [K in keyof ClassMemberMap<S, NodeKey>]: ClassMemberMap<S, NodeKey>[K] extends CreateableSignature
+    ? (data: FlowPayload<S, ClassMemberMap<S, NodeKey>[K]['flow']>) => InferNodeShape<S, A, NodeKey, Namespaces>
+    : never;
+};
+
 export type InferClassMembers<
   S extends PatternSpecLiteral,
   A extends AccessorImplementations<S>,
   NodeKey extends keyof InterfaceNodeMap<S> & string,
   Namespaces extends ExternalNamespaceMap = {}
+> = InterfaceNodeAlias<S, NodeKey> extends { namespace: infer NS extends keyof Namespaces; target: infer Target extends string }
+  ? Namespaces[NS]['spec'] extends infer AliasSpec extends PatternSpecLiteral
+    ? Namespaces[NS]['accessors'] extends AccessorImplementations<AliasSpec>
+      ? InferClassMembers<
+          AliasSpec,
+          Namespaces[NS]['accessors'],
+          Extract<Target, keyof InterfaceNodeMap<AliasSpec> & string>,
+          Namespaces
+        >
+      : never
+    : never
+  : RawInferClassMembers<S, A, NodeKey, Namespaces>;
+
+type LocalInferMembers<
+  S extends PatternSpecLiteral,
+  A extends AccessorImplementations<S>,
+  NodeKey extends keyof InterfaceNodeMap<S> & string,
+  Namespaces extends ExternalNamespaceMap
 > = {
-  readonly [K in keyof ClassMemberMap<S, NodeKey>]: ClassMemberMap<S, NodeKey>[K] extends CreateableSignature
-    ? (data: FlowPayload<S, ClassMemberMap<S, NodeKey>[K]['flow']>) => InferNodeShape<S, A, NodeKey, Namespaces>
+  readonly [K in keyof FilteredMemberDefs<S, NodeKey>]: FilteredMemberDefs<S, NodeKey>[K] extends { member: infer MemberSpec; deps: infer Deps extends readonly string[] }
+    ? ResolveMember<S, A, Namespaces, { member: MemberSpec & MemberSignature; deps: Deps }>
     : never;
 };
 
@@ -253,11 +293,18 @@ export type InferMembers<
   A extends AccessorImplementations<S>,
   NodeKey extends keyof InterfaceNodeMap<S> & string,
   Namespaces extends ExternalNamespaceMap = {}
-> = {
-  readonly [K in keyof FilteredMemberDefs<S, NodeKey>]: FilteredMemberDefs<S, NodeKey>[K] extends { member: infer MemberSpec; deps: infer Deps extends readonly string[] }
-    ? ResolveMember<S, A, Namespaces, { member: MemberSpec & MemberSignature; deps: Deps }>
-    : never;
-};
+> = InterfaceNodeAlias<S, NodeKey> extends { namespace: infer NS extends keyof Namespaces; target: infer Target extends string }
+  ? Namespaces[NS]['spec'] extends infer AliasSpec extends PatternSpecLiteral
+    ? Namespaces[NS]['accessors'] extends AccessorImplementations<AliasSpec>
+      ? InferMembers<
+          AliasSpec,
+          Namespaces[NS]['accessors'],
+          Extract<Target, keyof InterfaceNodeMap<AliasSpec> & string>,
+          Namespaces
+        >
+      : never
+    : never
+  : LocalInferMembers<S, A, NodeKey, Namespaces>;
 
 export type InferNodeShape<
   S extends PatternSpecLiteral,
