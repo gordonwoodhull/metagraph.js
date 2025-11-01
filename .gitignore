@@ -10,3 +10,5 @@ docs/
 *.log
 # OS files
 .DS_Store
+web/
+trace-subgraph echo trace-subgraph/

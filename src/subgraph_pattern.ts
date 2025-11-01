@@ -18,7 +18,7 @@ type SubgraphAccessorDeclarations = AccessorDeclarations<SubgraphAccessorMap>;
 type GraphNamespaceDescriptor<A extends GraphPatternRuntimeAccessors> = {
   readonly spec: typeof graphPatternSpec;
   readonly accessors: A;
-  readonly outputs: Record<string, unknown>;
+  readonly outputs: GraphDataflowNamespace<GraphPatternRuntimeAccessors>;
   readonly payloads: typeof graphPatternSpec['payloads'];
 };
 
